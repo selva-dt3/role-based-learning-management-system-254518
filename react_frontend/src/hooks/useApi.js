@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiFetch } from '../api/client';
+import { apiFetch, apiUploadFile } from '../api/client';
 
 // PUBLIC_INTERFACE
 export default function useApi(initialPath = '') {
   /**
    * React hook to call REST endpoints.
    * - Pass initialPath to auto-fetch (string). Pass null/'' to disable auto-fetch.
-   * - Provides get, post, put, del helpers.
+   * - Provides get, post, put, del helpers and upload.
    */
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(Boolean(initialPath));
@@ -30,6 +30,7 @@ export default function useApi(initialPath = '') {
   const post = useCallback(async (path, body) => apiFetch(path, { method: 'POST', body }), []);
   const put = useCallback(async (path, body) => apiFetch(path, { method: 'PUT', body }), []);
   const del = useCallback(async (path) => apiFetch(path, { method: 'DELETE' }), []);
+  const upload = useCallback(async (file, optionalLessonId) => apiUploadFile(file, optionalLessonId), []);
 
   const refetch = useCallback(async () => {
     const p = pathRef.current;
@@ -46,5 +47,5 @@ export default function useApi(initialPath = '') {
     }
   }, [initialPath, get]);
 
-  return { data, loading, error, get, post, put, del, refetch };
+  return { data, loading, error, get, post, put, del, refetch, upload };
 }

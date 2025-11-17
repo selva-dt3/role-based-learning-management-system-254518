@@ -14,7 +14,7 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 - React 18
 - react-router-dom v6
 - Vanilla CSS (Ocean Professional theme)
-- Simple API client using REACT_APP_API_BASE_URL
+- API client with toggleable Mock API mode
 
 ## Setup
 
@@ -24,8 +24,20 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
    ```
 
 2. Configure environment
-   - Copy `.env.example` to `.env` and set:
-     - `REACT_APP_API_BASE_URL` (e.g., `http://localhost:8000`)
+   - Copy `.env.example` to `.env` and set one of the following modes:
+
+   - Mock mode (no backend required):
+     ```
+     REACT_APP_USE_MOCK_API=true
+     ```
+     The UI uses an in-memory mock API with localStorage persistence. A "Mock API" badge appears in the navbar.
+
+   - Real backend mode:
+     ```
+     REACT_APP_USE_MOCK_API=false
+     REACT_APP_API_BASE_URL=http://localhost:8000
+     ```
+     Ensure the FastAPI backend is running and CORS is enabled.
 
 3. Start the app
    ```
@@ -35,22 +47,24 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 
 ## API Configuration
 
-The API base URL is read from `process.env.REACT_APP_API_BASE_URL` by `src/api/client.js`. Ensure CORS is enabled on the FastAPI backend.
+- When `REACT_APP_USE_MOCK_API=true`, all calls are routed to `src/api/mockApi.js` which mimics CRUD for lessons, assignments, completions, and quizzes, and stubs file uploads. Data persists in `localStorage` during the browser session.
+- When `REACT_APP_USE_MOCK_API=false`, the base URL is read from `process.env.REACT_APP_API_BASE_URL` by `src/api/client.js`.
 
 ## Project Structure
 
 - `src/App.js` Router and pages wiring
 - `src/components/` Reusable UI components
 - `src/pages/` Role dashboards
-- `src/api/client.js` Fetch wrapper
-- `src/hooks/useApi.js` Hook for REST calls
+- `src/api/client.js` Fetch wrapper + mock switch
+- `src/api/mockApi.js` In-memory Mock API
+- `src/hooks/useApi.js` Hook for REST calls and upload helper
 - `src/App.css` Ocean Professional theme + components
 
 ## Notes
 
 - This frontend does not implement authentication by design.
 - No secrets are stored in code. Use environment variables.
-- The hook and API client include minimal error handling; extend as needed.
+- The mock API seeds deterministic sample data on first load and persists changes in `localStorage`.
 
 ## Scripts
 

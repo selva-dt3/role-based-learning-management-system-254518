@@ -7,12 +7,31 @@ import { Link, useLocation } from 'react-router-dom';
  */
 export default function Navbar({ onToggleTheme, themeLabel }) {
   const { pathname } = useLocation();
+  const useMock = String(process.env.REACT_APP_USE_MOCK_API || '').toLowerCase() === 'true';
+
   return (
     <nav className="navbar" role="navigation" aria-label="Main Navigation">
       <div className="navbar-inner">
         <div className="brand">
           <div className="brand-badge" aria-hidden>RB</div>
           <span className="brand-name">Role-Based LMS</span>
+          {useMock && (
+            <span
+              aria-label="Mock API enabled"
+              style={{
+                marginLeft: 8,
+                padding: '4px 8px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                background: 'rgba(37,99,235,0.12)',
+                color: 'var(--primary)',
+                border: '1px solid var(--primary)'
+              }}
+            >
+              Mock API
+            </span>
+          )}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
           <NavLink to="/" active={pathname === '/'}>Home</NavLink>
