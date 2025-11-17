@@ -208,12 +208,29 @@ export async function uploadFile(file, optionalLessonId) {
 }
 
 // PUBLIC_INTERFACE
-export async function assignLesson({ lesson_id, employee_id }) {
-  /** Create an assignment for an employee to a lesson if not already assigned. */
+export async function assignLesson({ lesson_id, employee_id, name }) {
+  /** Create an assignment for an employee to a lesson if not already assigned.
+   * If a name is provided, upsert the employee profile first.
+   */
   await delay();
-  const { assignments } = getState();
+  const { assignments, employees } = getState();
+
+  // Upsert employee if name provided
+  if (employee_id && typeof name === 'string' && name.trim()) {
+    const idx = employees.findIndex(e => e.employee_id === employee_id);
+    const rec = { employee_id, name: name.trim() };
+    if (idx === -1) {
+      setState({ employees: [...employees, rec] });
+    } else {
+      const next = [...employees];
+      next[idx] = { ...next[idx], ...rec };
+      setState({ employees: next });
+    }
+  }
+
   const exists = assignments.find(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
   if (exists) return exists;
+
   const assignment = { id: uuid(), lesson_id, employee_id, completed: false, progress: 0 };
   setState({ assignments: [...assignments, assignment] });
   return assignment;

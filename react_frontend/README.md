@@ -59,6 +59,23 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 - In Mock mode, upload progress is simulated; in Backend mode, the browser shows "Creating…" and completes when server responds.
 - After success, the lessons list refreshes.
 
+## HR Assignment Flow
+
+- Open the HR dashboard.
+- Use "Create Employee Profile" to create/update an employee with Employee ID and optional Name.
+- In "Assign Lesson":
+  - Enter Employee ID (required)
+  - Optionally enter Name (recommended; creates/updates the employee profile)
+  - Choose a lesson from the selector
+  - Click "Assign Lesson"
+- Validation:
+  - Employee ID and Lesson selection are required
+- Mock mode:
+  - The mock API will upsert the employee if a name is provided and create the assignment
+- Real backend mode:
+  - The frontend will POST `/employees` with `{ employee_id, name }` when name is provided, then POST `/assign` with `{ lesson_id, employee_id }`
+- After success, the lessons overview updates assigned counts. Employees will see new assignments on their dashboard.
+
 ## API Configuration
 
 - When `REACT_APP_USE_MOCK_API=true`, all calls are routed to `src/api/mockApi.js` which mimics CRUD for lessons, assignments, completions, quizzes, employees and stubs file uploads. Data persists in `localStorage` during the browser session.

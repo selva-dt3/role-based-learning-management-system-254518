@@ -121,6 +121,7 @@ export default function EmployeeDashboard() {
                 <LessonCard
                   key={a.lesson_id}
                   title={a.lesson_title ?? a.lesson_id}
+                  // If future APIs include per-assignment descriptions, they'll appear here
                   description={a.description}
                   files={a.files_count ?? 0}
                   progress={a.progress ?? 0}

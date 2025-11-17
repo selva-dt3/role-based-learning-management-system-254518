@@ -4,22 +4,32 @@ import useApi from '../hooks/useApi';
 
 /**
  * HRDashboard allows HR to view lessons and assign to employees.
- * Also includes a small "Create Employee Profile" form.
+ * Includes:
+ * - Create/Update Employee Profile
+ * - Assign Lesson panel with employee_id, optional name, and lesson selector
  */
 export default function HRDashboard() {
   const { data: lessons, loading, error, refetch } = useApi('/lessons');
-  const { post } = useApi(); // generic
-  const [employeeId, setEmployeeId] = useState('');
+  const { post } = useApi(); // generic POST helper
+
+  // Create employee mini-form
   const [newEmpId, setNewEmpId] = useState('');
   const [newEmpName, setNewEmpName] = useState('');
+
+  // Assign panel state
+  const [assignEmpId, setAssignEmpId] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assignLessonId, setAssignLessonId] = useState('');
+  const [assigning, setAssigning] = useState(false);
+
+  // Toast
   const [toast, setToast] = useState(null);
-
-  useEffect(() => { /* ensure initial fetch */ }, []);
-
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => { /* initial fetch handled by useApi */ }, []);
 
   const columns = useMemo(() => ([
     { key: 'id', label: 'ID' },
@@ -33,10 +43,51 @@ export default function HRDashboard() {
     assigned: l.assigned_count ?? 0
   })) : []), [lessons]);
 
-  const onAssign = async (lessonId) => {
-    if (!employeeId.trim()) return;
-    await post('/assign', { lesson_id: lessonId, employee_id: employeeId });
-    await refetch();
+  // Validate assign panel
+  const validateAssign = () => {
+    const empId = assignEmpId.trim();
+    const lessonId = assignLessonId.trim();
+    if (!empId) {
+      showToast('error', 'Employee ID is required.');
+      return false;
+    }
+    if (!lessonId) {
+      showToast('error', 'Please select a lesson to assign.');
+      return false;
+    }
+    return true;
+  };
+
+  // Assign action:
+  // - If name provided, upsert employee via POST /employees
+  // - Then POST /assign with { lesson_id, employee_id }
+  const submitAssign = async (e) => {
+    e?.preventDefault?.();
+    if (!validateAssign()) return;
+
+    setAssigning(true);
+    try {
+      const empId = assignEmpId.trim();
+      const name = assignName.trim();
+
+      // Upsert employee when name provided (both mock and real support POST /employees)
+      if (name) {
+        await post('/employees', { employee_id: empId, name });
+      }
+
+      // Create assignment
+      await post('/assign', { lesson_id: assignLessonId, employee_id: empId, ...(name ? { name } : {}) });
+
+      showToast('success', 'Lesson assigned successfully.');
+      // Reset selection but keep employee id for faster multiple assignments
+      setAssignLessonId('');
+      // Refresh lessons meta counts
+      await refetch();
+    } catch (err) {
+      showToast('error', err?.message || 'Failed to assign lesson.');
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const createEmployee = async (e) => {
@@ -73,7 +124,7 @@ export default function HRDashboard() {
                 style={{ padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
               />
               <input
-                placeholder="Name (optional)"
+                placeholder="Name (optional but recommended)"
                 aria-label="New Employee Name"
                 value={newEmpName}
                 onChange={e => setNewEmpName(e.target.value)}
@@ -105,32 +156,70 @@ export default function HRDashboard() {
           )}
         </div>
 
-        {/* Assign Lessons */}
-        <div className="card">
-          <h3 className="card-title">Assign Lessons</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              placeholder="Employee ID"
-              aria-label="Employee ID"
-              value={employeeId}
-              onChange={e => setEmployeeId(e.target.value)}
-              style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
-            />
-          </div>
+        {/* Assign Lesson Panel */}
+        <div className="card" style={{ position: 'relative' }}>
+          <h3 className="card-title">Assign Lesson</h3>
+          <form onSubmit={submitAssign}>
+            <div className="grid" style={{ gap: 8 }}>
+              <div>
+                <label htmlFor="assign-emp-id" style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>
+                  Employee ID <span style={{ color: 'var(--error)' }}>*</span>
+                </label>
+                <input
+                  id="assign-emp-id"
+                  placeholder="Employee ID"
+                  aria-required="true"
+                  value={assignEmpId}
+                  onChange={e => setAssignEmpId(e.target.value)}
+                  style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
+                />
+              </div>
+              <div>
+                <label htmlFor="assign-name" style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>
+                  Name (optional but recommended)
+                </label>
+                <input
+                  id="assign-name"
+                  placeholder="Employee Name (optional)"
+                  value={assignName}
+                  onChange={e => setAssignName(e.target.value)}
+                  style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
+                />
+                <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
+                  If provided, the employee profile will be created/updated before assignment.
+                </div>
+              </div>
+              <div>
+                <label htmlFor="assign-lesson" style={{ display: 'block', fontWeight: 700, marginBottom: 6 }}>
+                  Select Lesson <span style={{ color: 'var(--error)' }}>*</span>
+                </label>
+                <select
+                  id="assign-lesson"
+                  value={assignLessonId}
+                  onChange={(e) => setAssignLessonId(e.target.value)}
+                  style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
+                >
+                  <option value="">-- Choose a lesson --</option>
+                  {Array.isArray(lessons) && lessons.map(l => (
+                    <option key={l.id} value={l.id}>{l.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <button className="btn" type="submit" disabled={assigning}>
+                  {assigning ? 'Assigning…' : 'Assign Lesson'}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       </section>
 
       <section className="section">
+        <h3 className="card-title">Lessons Overview</h3>
         {loading && <p>Loading…</p>}
         {error && <p style={{ color: 'var(--error)' }}>{error.message}</p>}
         <Table columns={columns} rows={rows} />
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          {Array.isArray(lessons) && lessons.map(l => (
-            <button key={l.id} className="btn" onClick={() => onAssign(l.id)}>
-              Assign "{l.title}"
-            </button>
-          ))}
-        </div>
       </section>
     </div>
   );
