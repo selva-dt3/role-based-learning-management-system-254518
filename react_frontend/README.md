@@ -35,18 +35,31 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
    - Real backend mode:
      ```
      REACT_APP_USE_MOCK_API=false
-     REACT_APP_API_BASE_URL=http://localhost:8000
+     REACT_APP_API_BASE_URL=https://vscode-internal-23515-beta.beta01.cloud.kavia.ai:3001
      ```
      Ensure the FastAPI backend is running and CORS is enabled. The frontend will:
-     - POST `/lesson` with JSON body `{ title, description? }`
+     - GET `/lessons` to list lessons
+     - POST `/lessons` with JSON body `{ title, description? }` to create a lesson
+     - PUT `/lessons/{id}` with `{ file_url }` when needed to attach an uploaded file
      - POST `/upload` with multipart `FormData(file=<File>)` to receive `{ url: "https://..." }`
-     - If the created lesson did not include `file_url`, it will attempt `PUT /lesson/{id}` with `{ file_url }`.
+     - POST `/assign` to assign lessons
+     - GET `/assignments/{employee_id}` to list assigned lessons
+     - POST `/complete` to mark completion
+     - GET `/progress/{employee_id}` for progress
+     - Employees:
+       - GET `/employees/{id}` to check an employee profile
+       - POST `/employees` to create/update an employee
 
 3. Start the app
    ```
    npm start
    ```
    App runs at http://localhost:3000
+
+Notes:
+- All API calls use `REACT_APP_API_BASE_URL` (no implicit port 3000). Employees endpoints use `/employees` under this base URL.
+- On app start, the browser console logs which mode is active (MOCK vs REAL) and the base URL when REAL.
+- After changing `.env`, you must restart the frontend preview for changes to take effect.
 
 ## Admin "Create Lesson" Form
 

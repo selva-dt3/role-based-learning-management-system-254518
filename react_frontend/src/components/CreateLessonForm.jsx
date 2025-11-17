@@ -124,7 +124,8 @@ export default function CreateLessonForm({ onCreated, onClose }) {
         // We store links as part of description extension in mock or ignore in backend.
         // If backend supports links later, it can be added here.
       };
-      let created = await post('/lesson', payload);
+      // Use pluralized lessons endpoint (client.js also normalizes defensively)
+      let created = await post('/lessons', payload);
 
       // 2) Upload file (if provided)
       if (file) {
@@ -133,7 +134,7 @@ export default function CreateLessonForm({ onCreated, onClose }) {
         // If backend didn't attach, try to update lesson
         if (!created?.file_url && url && created?.id) {
           try {
-            created = await put(`/lesson/${created.id}`, { file_url: url });
+            created = await put(`/lessons/${created.id}`, { file_url: url });
           } catch {
             // swallow; backend might not support update, but it's fine
           }

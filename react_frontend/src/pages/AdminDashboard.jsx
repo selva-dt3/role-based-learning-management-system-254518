@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   })) : []), [lessons]);
 
   const onDelete = async (id) => {
-    await del(`/lesson/${id}`);
+    await del(`/lessons/${id}`);
     await refetch();
   };
 

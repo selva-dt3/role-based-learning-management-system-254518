@@ -17,6 +17,15 @@ if (USE_MOCK) {
   mock = require('./mockApi');
 }
 
+// Log startup configuration for easier debugging
+(() => {
+  const base = getApiBaseUrl();
+  // eslint-disable-next-line no-console
+  console.info(
+    `[LMS Frontend] API mode: ${USE_MOCK ? 'MOCK' : 'REAL'}${USE_MOCK ? '' : ` | base=${base || '(unset)'}`}`
+  );
+})();
+
 // PUBLIC_INTERFACE
 export async function apiFetch(path, options = {}) {
   /**
@@ -28,12 +37,12 @@ export async function apiFetch(path, options = {}) {
     const body = options.body || {};
     const p = path?.startsWith('/') ? path : `/${path || ''}`;
 
-    // Lessons
+    // Lessons (use pluralized routes; keep backward compat for '/lesson' in mock only)
     if (method === 'GET' && p === '/lessons') return mock.getLessons();
-    if (method === 'POST' && (p === '/lesson' || p === '/lessons')) return mock.createLesson(body);
+    if (method === 'POST' && (p === '/lessons' || p === '/lesson')) return mock.createLesson(body);
 
-    // PUT/DELETE with id for /lesson/:id or /lessons/:id
-    const lessonIdMatch = p.match(/^\/lesson[s]?\/([^/]+)$/);
+    // PUT/DELETE with id for /lessons/:id (and support legacy /lesson/:id for mock)
+    const lessonIdMatch = p.match(/^\/lessons\/([^/]+)$/) || p.match(/^\/lesson\/([^/]+)$/);
     if (lessonIdMatch) {
       const id = lessonIdMatch[1];
       if (method === 'PUT') return mock.updateLesson(id, body);
@@ -75,7 +84,14 @@ export async function apiFetch(path, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
 
-  const url = `${getApiBaseUrl()}${path?.startsWith('/') ? path : `/${path || ''}`}`;
+  // Normalize pluralized endpoints for lessons
+  let normalizedPath = path || '';
+  if (typeof normalizedPath === 'string') {
+    // Replace starting '/lesson' with '/lessons' for POST, and '/lesson/{id}' -> '/lessons/{id}' for PUT/DELETE
+    normalizedPath = normalizedPath.replace(/^\/lesson(\/|$)/, '/lessons$1');
+  }
+
+  const url = `${getApiBaseUrl()}${normalizedPath?.startsWith('/') ? normalizedPath : `/${normalizedPath || ''}`}`;
   try {
     const res = await fetch(url, {
       method: options.method || 'GET',
