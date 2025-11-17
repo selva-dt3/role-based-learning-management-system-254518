@@ -1,82 +1,59 @@
-# Lightweight React Template for KAVIA
+# Role-Based LMS React Frontend
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). Users select their role on the homepage and are routed to the proper dashboard. Styled with the "Ocean Professional" theme.
 
-## Features
+## Routes
 
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+- `/` Home with role selection
+- `/admin` Admin dashboard (manage lessons, view tracking)
+- `/hr` HR dashboard (assign lessons, view progress)
+- `/employee` Employee dashboard (view assigned lessons, mark completion)
 
-## Getting Started
+## Tech
 
-In the project directory, you can run:
+- React 18
+- react-router-dom v6
+- Vanilla CSS (Ocean Professional theme)
+- Simple API client using REACT_APP_API_BASE_URL
 
-### `npm start`
+## Setup
 
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. Install dependencies
+   ```
+   npm install
+   ```
 
-### `npm test`
+2. Configure environment
+   - Copy `.env.example` to `.env` and set:
+     - `REACT_APP_API_BASE_URL` (e.g., `http://localhost:8000`)
 
-Launches the test runner in interactive watch mode.
+3. Start the app
+   ```
+   npm start
+   ```
+   App runs at http://localhost:3000
 
-### `npm run build`
+## API Configuration
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The API base URL is read from `process.env.REACT_APP_API_BASE_URL` by `src/api/client.js`. Ensure CORS is enabled on the FastAPI backend.
 
-## Customization
+## Project Structure
 
-### Colors
+- `src/App.js` Router and pages wiring
+- `src/components/` Reusable UI components
+- `src/pages/` Role dashboards
+- `src/api/client.js` Fetch wrapper
+- `src/hooks/useApi.js` Hook for REST calls
+- `src/App.css` Ocean Professional theme + components
 
-The main brand colors are defined as CSS variables in `src/App.css`:
+## Notes
 
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
+- This frontend does not implement authentication by design.
+- No secrets are stored in code. Use environment variables.
+- The hook and API client include minimal error handling; extend as needed.
 
-### Components
+## Scripts
 
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
-
-## Learn More
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `npm start` Start dev server
+- `npm test` Run tests
+- `npm run build` Production build
