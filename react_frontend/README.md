@@ -61,7 +61,7 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 
 ## API Configuration
 
-- When `REACT_APP_USE_MOCK_API=true`, all calls are routed to `src/api/mockApi.js` which mimics CRUD for lessons, assignments, completions, and quizzes, and stubs file uploads. Data persists in `localStorage` during the browser session.
+- When `REACT_APP_USE_MOCK_API=true`, all calls are routed to `src/api/mockApi.js` which mimics CRUD for lessons, assignments, completions, quizzes, employees and stubs file uploads. Data persists in `localStorage` during the browser session.
 - When `REACT_APP_USE_MOCK_API=false`, the base URL is read from `process.env.REACT_APP_API_BASE_URL` by `src/api/client.js`.
 
 ## Project Structure

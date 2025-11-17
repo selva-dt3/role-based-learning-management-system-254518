@@ -59,6 +59,15 @@ export async function apiFetch(path, options = {}) {
       if (method === 'DELETE') return mock.deleteQuiz(id);
     }
 
+    // Employees
+    const empGetMatch = p.match(/^\/employees\/([^/]+)$/);
+    if (method === 'GET' && empGetMatch) {
+      return mock.getEmployee(empGetMatch[1]);
+    }
+    if (method === 'POST' && p === '/employees') {
+      return mock.upsertEmployee(body);
+    }
+
     throw new Error(`Mock API route not implemented for ${method} ${p}`);
   }
 

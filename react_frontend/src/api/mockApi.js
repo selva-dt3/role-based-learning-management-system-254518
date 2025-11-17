@@ -35,6 +35,7 @@ const LS_KEYS = {
   quizzes: `${NS}:${VERSION}:quizzes`,
   assignments: `${NS}:${VERSION}:assignments`,
   completions: `${NS}:${VERSION}:completions`,
+  employees: `${NS}:${VERSION}:employees`,
   seedFlag: `${NS}:${VERSION}:seeded`
 };
 
@@ -82,11 +83,15 @@ function seed() {
     { id: 'A-302', lesson_id: 'L-102', employee_id: 'emp-001', completed: false, progress: 0 }
   ];
   const completions = [];
+  const employees = [
+    { employee_id: 'emp-001', name: 'Sample Employee' }
+  ];
 
   save(LS_KEYS.lessons, lessons);
   save(LS_KEYS.quizzes, quizzes);
   save(LS_KEYS.assignments, assignments);
   save(LS_KEYS.completions, completions);
+  save(LS_KEYS.employees, employees);
   window.localStorage.setItem(LS_KEYS.seedFlag, 'true');
 }
 
@@ -98,7 +103,8 @@ function getState() {
     lessons: load(LS_KEYS.lessons, []),
     quizzes: load(LS_KEYS.quizzes, []),
     assignments: load(LS_KEYS.assignments, []),
-    completions: load(LS_KEYS.completions, [])
+    completions: load(LS_KEYS.completions, []),
+    employees: load(LS_KEYS.employees, [])
   };
 }
 
@@ -107,6 +113,7 @@ function setState(partial) {
   if (partial.quizzes) save(LS_KEYS.quizzes, partial.quizzes);
   if (partial.assignments) save(LS_KEYS.assignments, partial.assignments);
   if (partial.completions) save(LS_KEYS.completions, partial.completions);
+  if (partial.employees) save(LS_KEYS.employees, partial.employees);
 }
 
 // Simulate network latency to mimic API feel
@@ -299,4 +306,35 @@ export function __resetMockData() {
   /** Testing/helper: clear seed flag to reseed next load. */
   Object.values(LS_KEYS).forEach(k => window.localStorage.removeItem(k));
   seed();
+}
+
+// PUBLIC_INTERFACE
+export async function getEmployee(employee_id) {
+  /** Return {exists, employee?} for an employee_id. */
+  await delay();
+  const { employees } = getState();
+  const found = employees.find(e => e.employee_id === employee_id);
+  if (!found) {
+    const err = new Error('Employee not found');
+    err.status = 404;
+    throw err;
+  }
+  return { exists: true, employee: found };
+}
+
+// PUBLIC_INTERFACE
+export async function upsertEmployee({ employee_id, name }) {
+  /** Create or update an employee by employee_id. */
+  await delay();
+  const { employees } = getState();
+  const idx = employees.findIndex(e => e.employee_id === employee_id);
+  const rec = { employee_id, name: name || null };
+  if (idx === -1) {
+    setState({ employees: [...employees, rec] });
+    return rec;
+  }
+  const next = [...employees];
+  next[idx] = { ...next[idx], ...rec };
+  setState({ employees: next });
+  return next[idx];
 }
