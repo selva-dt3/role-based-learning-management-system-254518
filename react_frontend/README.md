@@ -5,7 +5,7 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 ## Routes
 
 - `/` Home with role selection
-- `/admin` Admin dashboard (manage lessons, view tracking)
+- `/admin` Admin dashboard (manage lessons, create with uploads, view tracking)
 - `/hr` HR dashboard (assign lessons, view progress)
 - `/employee` Employee dashboard (view assigned lessons, mark completion)
 
@@ -30,20 +30,34 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
      ```
      REACT_APP_USE_MOCK_API=true
      ```
-     The UI uses an in-memory mock API with localStorage persistence. A "Mock API" badge appears in the navbar.
+     The UI uses an in-memory mock API with localStorage persistence. A "Mock API" badge appears in the navbar. File uploads are emulated and return a fake public URL.
 
    - Real backend mode:
      ```
      REACT_APP_USE_MOCK_API=false
      REACT_APP_API_BASE_URL=http://localhost:8000
      ```
-     Ensure the FastAPI backend is running and CORS is enabled.
+     Ensure the FastAPI backend is running and CORS is enabled. The frontend will:
+     - POST `/lesson` with JSON body `{ title, description? }`
+     - POST `/upload` with multipart `FormData(file=<File>)` to receive `{ url: "https://..." }`
+     - If the created lesson did not include `file_url`, it will attempt `PUT /lesson/{id}` with `{ file_url }`.
 
 3. Start the app
    ```
    npm start
    ```
    App runs at http://localhost:3000
+
+## Admin "Create Lesson" Form
+
+- Open the Admin dashboard and click "Create Lesson".
+- Fields:
+  - Title (required)
+  - Description (optional, multiline)
+  - External Links (optional, up to 5)
+  - File Upload (optional): accepts .mp4, .mov, .webm, .pdf up to 100MB
+- In Mock mode, upload progress is simulated; in Backend mode, the browser shows "Creating…" and completes when server responds.
+- After success, the lessons list refreshes.
 
 ## API Configuration
 
@@ -53,7 +67,7 @@ Single Page Application (SPA) with role-based dashboards (Admin, HR, Employee). 
 ## Project Structure
 
 - `src/App.js` Router and pages wiring
-- `src/components/` Reusable UI components
+- `src/components/` Reusable UI components (includes `CreateLessonForm`)
 - `src/pages/` Role dashboards
 - `src/api/client.js` Fetch wrapper + mock switch
 - `src/api/mockApi.js` In-memory Mock API

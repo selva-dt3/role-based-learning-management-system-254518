@@ -2,13 +2,15 @@ import React, { useMemo, useState } from 'react';
 import LessonCard from '../components/LessonCard';
 import Table from '../components/Table';
 import useApi from '../hooks/useApi';
+import CreateLessonForm from '../components/CreateLessonForm';
 
 /**
  * AdminDashboard shows lesson management and tracking views for Admin role.
+ * Integrates the CreateLessonForm with validation and uploads.
  */
 export default function AdminDashboard() {
-  const { data: lessons, loading, error, refetch, post, del } = useApi('/lessons');
-  const [title, setTitle] = useState('');
+  const { data: lessons, loading, error, refetch, del } = useApi('/lessons');
+  const [showCreate, setShowCreate] = useState(false);
 
   const columns = useMemo(() => ([
     { key: 'id', label: 'ID' },
@@ -24,13 +26,6 @@ export default function AdminDashboard() {
     completed: l.completed_count ?? 0
   })) : []), [lessons]);
 
-  const onCreate = async () => {
-    if (!title.trim()) return;
-    await post('/lesson', { title });
-    setTitle('');
-    await refetch();
-  };
-
   const onDelete = async (id) => {
     await del(`/lesson/${id}`);
     await refetch();
@@ -41,19 +36,23 @@ export default function AdminDashboard() {
       <h2 className="section-title"><span className="dot" /> Admin Dashboard</h2>
 
       <section className="section">
-        <div className="card">
-          <h3 className="card-title">Create Lesson</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              aria-label="Lesson title"
-              placeholder="Lesson title"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
-            />
-            <button className="btn" onClick={onCreate}>Add</button>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <h3 className="card-title" style={{ margin: 0 }}>Manage Lessons</h3>
+            <p className="card-desc" style={{ margin: '6px 0 0' }}>Create and manage lesson content, upload files, and track assignments.</p>
           </div>
+          <button className="btn" onClick={() => setShowCreate(s => !s)} aria-expanded={showCreate} aria-controls="create-lesson-form">
+            {showCreate ? 'Close' : 'Create Lesson'}
+          </button>
         </div>
+        {showCreate && (
+          <div id="create-lesson-form" style={{ marginTop: 12 }}>
+            <CreateLessonForm
+              onCreated={async () => { await refetch(); }}
+              onClose={() => setShowCreate(false)}
+            />
+          </div>
+        )}
       </section>
 
       <section className="section">
@@ -66,7 +65,7 @@ export default function AdminDashboard() {
               key={l.id}
               title={l.title}
               description={l.description}
-              files={l.files_count ?? 0}
+              files={l.files_count ?? (l.file_url ? 1 : 0)}
               progress={l.progress ?? 0}
               onOpen={() => onDelete(l.id)}
             />

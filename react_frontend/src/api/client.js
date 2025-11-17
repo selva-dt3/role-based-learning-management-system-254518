@@ -2,7 +2,7 @@ const DEFAULT_TIMEOUT = 15000;
 
 // PUBLIC_INTERFACE
 export function getApiBaseUrl() {
-  /** Returns API base URL from environment. */
+  /** Returns API base URL from environment. Ensure no trailing slash. */
   const base = process.env.REACT_APP_API_BASE_URL || '';
   return base.replace(/\/*$/, '');
 }
