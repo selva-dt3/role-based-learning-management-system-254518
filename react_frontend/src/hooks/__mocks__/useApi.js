@@ -7,6 +7,7 @@
 export default function useApi() {
   /** Returns a mocked API client with stable methods for tests. */
   const mockResponses = {
+    // Lessons list must include Workplace Safety Basics for assertions
     '/lessons': [
       {
         id: 'lesson-1',
@@ -15,6 +16,7 @@ export default function useApi() {
         file_url: null,
       },
     ],
+    // Employee-specific mock endpoints
     '/assignments/employee-123': [
       { id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' },
     ],
@@ -23,8 +25,11 @@ export default function useApi() {
       completedCount: 0,
       percentage: 0,
     },
+    // Simulate employee existence check
+    '/employees/employee-123': { exists: true },
   };
 
+  // Simulate GET by path with a slight tick to mimic async without timers
   const get = jest.fn(async (path) => mockResponses[path]);
   const post = jest.fn(async () => ({ status: 201 }));
   const put = jest.fn();

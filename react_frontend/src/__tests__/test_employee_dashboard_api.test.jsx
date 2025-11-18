@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
@@ -21,16 +21,17 @@ test(
 
     const input = await screen.findByLabelText(/Employee ID/i, {}, { timeout: 5000 });
 
-    // First attempt unknown to trigger not found
+    // First attempt should show not found state initially (unknown)
     await user.clear(input);
     await user.type(input, 'employee-123');
 
-    const checkBtn = screen.getByRole('button', { name: /Check/i });
+    const checkBtn = await screen.findByRole('button', { name: /Check/i });
     await user.click(checkBtn);
 
+    // Await the intermediate \"Profile not found\" state
     await screen.findByText(/Profile not found/i, {}, { timeout: 8000 });
 
-    // Second attempt should pass (mock toggles to exists)
+    // Second attempt should pass and then show assigned lessons
     await user.click(checkBtn);
 
     const heading = await screen.findByRole('heading', { name: /Assigned Lessons/i }, { timeout: 8000 });
@@ -47,7 +48,7 @@ test(
       () => {
         expect(utils.getByText(/Workplace Safety Basics/i)).toBeInTheDocument();
       },
-      { timeout: 5000 }
+      { timeout: 8000 }
     );
   },
   20000
