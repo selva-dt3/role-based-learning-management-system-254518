@@ -1,7 +1,8 @@
  /**
-  * Simple mock API utilities used by components when REACT_APP_USE_MOCK_API is true.
-  * Deterministic data includes a lesson titled 'Workplace Safety Basics'.
-  * For 'employee-123', first calls return 404 for profile/assignments, second call returns valid data.
+  * Mock API with stateful behavior.
+  * - For employee-123: first getEmployee returns 404, second returns profile.
+  * - Assignments and lessons include "Workplace Safety Basics".
+  * - getAssignments for an employee also ensures a Workplace Safety Basics assignment exists.
   */
 
 const NS = 'rb-lms';
@@ -79,7 +80,7 @@ function setState(partial) {
   if (partial.completions) save(LS_KEYS.completions, partial.completions);
   if (partial.employees) save(LS_KEYS.employees, partial.employees);
 }
-function delay(ms = 50) {
+function delay(ms = 30) {
   return new Promise(res => setTimeout(res, ms));
 }
 
@@ -161,6 +162,7 @@ export async function getLessons() {
 // PUBLIC_INTERFACE
 export async function getAssignments(employee_id) {
   await delay();
+  // First attempt per employee returns 404 to match two-step flow in tests (first check may call assignments too)
   const key = `${NS}:${VERSION}:assignments:first:${employee_id}`;
   const first = window.sessionStorage.getItem(key) !== 'done';
   if (first) {
@@ -169,6 +171,7 @@ export async function getAssignments(employee_id) {
     err.status = 404;
     throw err;
   }
+
   const { assignments, lessons } = getState();
   const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
   let list = assignments.filter(a => a.employee_id === employee_id);
@@ -220,6 +223,7 @@ export async function getEmployee(employee_id) {
   await delay();
   const { employees, lessons, assignments } = getState();
 
+  // employee-123: first check -> 404, second -> success
   const firstKey = `${NS}:${VERSION}:employees:first:${employee_id}`;
   const firstCheck = window.sessionStorage.getItem(firstKey) !== 'done';
   if (firstCheck) {

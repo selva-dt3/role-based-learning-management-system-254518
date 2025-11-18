@@ -1,17 +1,16 @@
  /**
   * Global Jest setup for React Testing Library.
   *
+  * - Forces mock API usage by setting REACT_APP_USE_MOCK_API=true BEFORE any imports
+  * - Mocks the API client module to route to src/api/mockApi.js (used by hooks/pages)
   * - Adds jest-dom matchers
-  * - Forces mock API usage in tests via jest.mock of ./api/client
-  * - Seeds deterministic mock behavior driven by src/api/mockApi.js (stateful 404->200)
-  * - Stubs browser APIs and silences noisy console warnings
+  * - Provides minor browser polyfills and quiets noisy console warnings
   */
-import '@testing-library/jest-dom';
 
-// Ensure mock API is used in tests before app code imports
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
-// Mock the API client so all code importing ./api/client uses mockApi underneath
+// Map the API client to our mock implementation so all code importing ./api/client
+// uses the mock under the hood. This must execute before tests import app code.
 jest.mock('./api/client', () => {
   // eslint-disable-next-line global-require
   const mockApi = require('./api/mockApi');
@@ -28,7 +27,7 @@ jest.mock('./api/client', () => {
       if (method === 'GET' && p === '/lessons') return mockApi.getLessons();
       if (method === 'POST' && (p === '/lessons' || p === '/lesson')) return mockApi.createLesson(body);
 
-      // Lessons by id (optional support)
+      // Lessons by id
       const lessonIdMatch = p.match(/^\/lessons\/([^/]+)$/) || p.match(/^\/lesson\/([^/]+)$/);
       if (lessonIdMatch) {
         const id = lessonIdMatch[1];
@@ -68,7 +67,10 @@ jest.mock('./api/client', () => {
   };
 });
 
-// Browser API shims and console noise silencing
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+import '@testing-library/jest-dom';
+
+// Polyfills and console noise filtering
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query) => ({

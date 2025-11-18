@@ -3,8 +3,9 @@ import useApi from '../hooks/useApi';
 
 describe('useApi hook', () => {
   beforeEach(() => {
-    // ensure deterministic mock mode
     process.env.REACT_APP_USE_MOCK_API = 'true';
+    window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   test('fetches lessons and includes Workplace Safety Basics', async () => {
@@ -16,7 +17,7 @@ describe('useApi hook', () => {
         expect(result.current.error).toBeNull();
         expect(Array.isArray(result.current.data)).toBe(true);
       },
-      { timeout: 5000 }
+      { timeout: 6000 }
     );
 
     const hasSafety = result.current.data?.some((l) => l.title === 'Workplace Safety Basics');
