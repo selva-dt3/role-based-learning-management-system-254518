@@ -1,3 +1,10 @@
+ /**
+ * Simple mock API utilities used by components when REACT_APP_USE_MOCK_API is true.
+ * Note: Jest tests may install a global.fetch mock via src/__tests__/mocks/handlers.js.
+ * When present, those fetch mocks take precedence because components ultimately call fetch
+ * through the shared client when not in USE_MOCK mode.
+ */
+
 /**
  * Mock API for the Role-Based LMS frontend.
  * Provides in-memory CRUD and localStorage persistence for:
