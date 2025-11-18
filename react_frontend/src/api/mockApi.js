@@ -1,10 +1,9 @@
-/**
- * Simple mock API utilities used by components when REACT_APP_USE_MOCK_API is true.
- * Deterministic data includes a lesson titled 'Workplace Safety Basics'.
- * Note: Tests may rely on first-call 404 then success for assignments.
- */
+ /**
+  * Simple mock API utilities used by components when REACT_APP_USE_MOCK_API is true.
+  * Deterministic data includes a lesson titled 'Workplace Safety Basics'.
+  * For 'employee-123', first calls return 404 for profile/assignments, second call returns valid data.
+  */
 
-// Utilities
 const NS = 'rb-lms';
 const VERSION = 'v1';
 const LS_KEYS = {
@@ -50,10 +49,9 @@ function seed() {
     { id: 'lesson-2', title: 'Data Privacy Fundamentals', description: 'Protecting sensitive data.', file_url: null }
   ];
   const quizzes = [];
-  // keep initial assignments empty; tests expect first check to not find profile/assignments
   const assignments = [];
   const completions = [];
-  const employees = []; // start with no employees so first check returns 404
+  const employees = []; // start empty to allow first 404
 
   save(LS_KEYS.lessons, lessons);
   save(LS_KEYS.quizzes, quizzes);
@@ -85,7 +83,6 @@ function delay(ms = 50) {
   return new Promise(res => setTimeout(res, ms));
 }
 
-// --- Lessons CRUD (minimal) ---
 // PUBLIC_INTERFACE
 export async function createLesson(payload) {
   await delay();
@@ -118,7 +115,6 @@ export async function deleteLesson(id) {
   return { ok: true };
 }
 
-// --- Quizzes CRUD (minimal) ---
 // PUBLIC_INTERFACE
 export async function getQuizzes() {
   await delay();
@@ -157,7 +153,6 @@ export async function deleteQuiz(id) {
 
 // PUBLIC_INTERFACE
 export async function getLessons() {
-  /** Return list of lessons (deterministic). */
   await delay();
   const { lessons } = getState();
   return lessons;
@@ -165,10 +160,6 @@ export async function getLessons() {
 
 // PUBLIC_INTERFACE
 export async function getAssignments(employee_id) {
-  /**
-   * First call simulates 404 via throw; next calls return assignments.
-   * Ensures at least the Workplace Safety Basics assignment exists for the employee.
-   */
   await delay();
   const key = `${NS}:${VERSION}:assignments:first:${employee_id}`;
   const first = window.sessionStorage.getItem(key) !== 'done';
@@ -182,7 +173,7 @@ export async function getAssignments(employee_id) {
   const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
   let list = assignments.filter(a => a.employee_id === employee_id);
   if (safety && !list.some(a => a.lesson_id === safety.id)) {
-    const a = { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0 };
+    const a = { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0, lesson_title: safety.title };
     setState({ assignments: [...assignments, a] });
     list = [...list, a];
   }
@@ -191,7 +182,6 @@ export async function getAssignments(employee_id) {
 
 // PUBLIC_INTERFACE
 export async function getProgress(employee_id) {
-  /** Return simple progress summary. */
   await delay();
   const { assignments } = getState();
   const forEmp = assignments.filter(a => a.employee_id === employee_id);
@@ -203,7 +193,6 @@ export async function getProgress(employee_id) {
 
 // PUBLIC_INTERFACE
 export async function completeLesson({ lesson_id, employee_id }) {
-  /** Mark assignment complete and add completion record. */
   await delay();
   const { assignments, completions } = getState();
   const idx = assignments.findIndex(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
@@ -216,23 +205,21 @@ export async function completeLesson({ lesson_id, employee_id }) {
 
 // PUBLIC_INTERFACE
 export async function assignLesson({ lesson_id, employee_id }) {
-  /** Create assignment if none exists. */
   await delay();
-  const { assignments } = getState();
+  const { assignments, lessons } = getState();
   const existing = assignments.find(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
   if (existing) return existing;
-  const a = { id: uuid(), lesson_id, employee_id, completed: false, progress: 0 };
+  const lesson = lessons.find(l => l.id === lesson_id);
+  const a = { id: uuid(), lesson_id, employee_id, completed: false, progress: 0, lesson_title: lesson?.title };
   setState({ assignments: [...assignments, a] });
   return a;
 }
 
 // PUBLIC_INTERFACE
 export async function getEmployee(employee_id) {
-  /** Return { exists, employee? } with stateful first 404 then auto-create on second call. */
   await delay();
   const { employees, lessons, assignments } = getState();
 
-  // Stateful: first call per employee returns 404; second call auto-creates profile and default assignments
   const firstKey = `${NS}:${VERSION}:employees:first:${employee_id}`;
   const firstCheck = window.sessionStorage.getItem(firstKey) !== 'done';
   if (firstCheck) {
@@ -242,7 +229,6 @@ export async function getEmployee(employee_id) {
     throw err;
   }
 
-  // If not present after first check, create a basic profile
   let emp = employees.find(e => e.employee_id === employee_id);
   if (!emp) {
     emp = { employee_id, name: 'Test User' };
@@ -253,7 +239,7 @@ export async function getEmployee(employee_id) {
   const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
   const hasAssignment = assignments.some(a => a.employee_id === employee_id && a.lesson_id === safety?.id);
   if (safety && !hasAssignment) {
-    setState({ assignments: [...assignments, { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0 }] });
+    setState({ assignments: [...assignments, { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0, lesson_title: safety.title }] });
   }
 
   return { exists: true, employee: emp };
@@ -261,7 +247,6 @@ export async function getEmployee(employee_id) {
 
 // PUBLIC_INTERFACE
 export async function upsertEmployee({ employee_id, name }) {
-  /** Upsert employee. */
   await delay();
   const { employees } = getState();
   const idx = employees.findIndex(e => e.employee_id === employee_id);
@@ -278,7 +263,6 @@ export async function upsertEmployee({ employee_id, name }) {
 
 // PUBLIC_INTERFACE
 export function __resetMockData() {
-  /** Reset mock data for tests. */
   Object.values(LS_KEYS).forEach(k => window.localStorage.removeItem(k));
   window.sessionStorage.clear();
   seed();
@@ -286,7 +270,6 @@ export function __resetMockData() {
 
 // PUBLIC_INTERFACE
 export async function uploadFile(file, optionalLessonId) {
-  /** Return a deterministic mock URL for uploaded files. */
   await delay();
   return { url: `mock://uploads/${optionalLessonId || 'general'}/${(file && file.name) || 'file.bin'}` };
 }

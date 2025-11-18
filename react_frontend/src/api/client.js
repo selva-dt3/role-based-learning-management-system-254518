@@ -3,7 +3,7 @@ const DEFAULT_TIMEOUT = 15000;
 // PUBLIC_INTERFACE
 export function getApiBaseUrl() {
   /** Returns API base URL from environment. Ensure no trailing slash. */
-  const base = process.env.REACT_APP_API_BASE_URL || '';
+  const base = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_BACKEND_URL || '';
   return base.replace(/\/*$/, '');
 }
 
@@ -16,15 +16,6 @@ if (USE_MOCK) {
   // eslint-disable-next-line global-require
   mock = require('./mockApi');
 }
-
-// Log startup configuration for easier debugging
-(() => {
-  const base = getApiBaseUrl();
-  // eslint-disable-next-line no-console
-  console.info(
-    `[LMS Frontend] API mode: ${USE_MOCK ? 'MOCK' : 'REAL'}${USE_MOCK ? '' : ` | base=${base || '(unset)'}`}`
-  );
-})();
 
 // PUBLIC_INTERFACE
 export async function apiFetch(path, options = {}) {

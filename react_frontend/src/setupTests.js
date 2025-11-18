@@ -8,10 +8,10 @@
   */
 import '@testing-library/jest-dom';
 
-// 1) Ensure mock API is used in tests before app code imports
+// Ensure mock API is used in tests before app code imports
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
-// 1a) Hard-mock the API client so all code importing ./api/client uses mockApi underneath
+// Mock the API client so all code importing ./api/client uses mockApi underneath
 jest.mock('./api/client', () => {
   // eslint-disable-next-line global-require
   const mockApi = require('./api/mockApi');
@@ -68,7 +68,7 @@ jest.mock('./api/client', () => {
   };
 });
 
-// 2) Browser API shims and console noise silencing
+// Browser API shims and console noise silencing
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query) => ({
