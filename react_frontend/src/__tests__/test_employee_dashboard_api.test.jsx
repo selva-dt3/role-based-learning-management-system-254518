@@ -3,11 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 
+jest.setTimeout(10000);
+
 describe('EmployeeDashboard API integration', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
-    // Pre-fill employee id so dashboard immediately checks and loads data
     window.localStorage.setItem('rb-lms:v1:employee_id', 'employee-123');
   });
 
@@ -20,16 +21,14 @@ describe('EmployeeDashboard API integration', () => {
       </MemoryRouter>
     );
 
-    // Wait for the heading
-    expect(await screen.findByRole('heading', { name: /Employee Dashboard/i }, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Employee Dashboard/i })).toBeInTheDocument();
 
-    // After initial 404 and subsequent retry/success, expect the lesson title to be rendered
-    expect(await screen.findByText(/Workplace Safety Basics/i, undefined, { timeout: 8000 })).toBeInTheDocument();
+    // After initial 404 and subsequent retry/success, expect the deterministic lesson title to appear
+    expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
 
-    // Wait for the Progress section to appear and table to settle
     await waitFor(() => {
       expect(screen.getByText(/Progress/i)).toBeInTheDocument();
-    }, { timeout: 8000 });
+    });
   });
 
   test('renders under MemoryRouter without nesting BrowserRouter in test', async () => {
@@ -38,6 +37,6 @@ describe('EmployeeDashboard API integration', () => {
         <EmployeeDashboard />
       </MemoryRouter>
     );
-    expect(await screen.findByText(/Workplace Safety Basics/i, undefined, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
   });
 });
