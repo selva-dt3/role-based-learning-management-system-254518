@@ -1,8 +1,13 @@
  /**
-  * Mock API with stateful behavior.
-  * - For employee-123: first getEmployee returns 404, second returns profile.
-  * - Assignments and lessons include "Workplace Safety Basics".
-  * - getAssignments for an employee also ensures a Workplace Safety Basics assignment exists.
+  * Mock API with deterministic, stateful behavior for tests.
+  *
+  * Requirements implemented:
+  * - For employee-123 (and any id), first getEmployee call returns 404; second returns a profile.
+  * - getAssignments for an employee first returns 404, then returns a list that includes a lesson 'lesson-1'.
+  * - listLessons includes:
+  *    { id: 'lesson-1', title: 'Workplace Safety Basics', description: '...', file_url: null }
+  *
+  * The store is persisted in localStorage; per-test isolation should clear localStorage and sessionStorage.
   */
 
 const NS = 'rb-lms';
@@ -17,51 +22,41 @@ const LS_KEYS = {
 };
 
 function safeParse(json, fallback) {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return fallback;
-  }
+  try { return JSON.parse(json); } catch { return fallback; }
 }
-
 function load(key, fallback) {
   const raw = window.localStorage.getItem(key);
   return raw ? safeParse(raw, fallback) : fallback;
 }
-
 function save(key, value) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
-
 function uuid() {
   // eslint-disable-next-line
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (Math.random()*16)|0, v = c === 'x' ? r : (r&0x3|0x8);
+    const r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
 
+/**
+ * Seed deterministic lessons that include the Workplace Safety Basics entry.
+ */
 function seed() {
   const seeded = window.localStorage.getItem(LS_KEYS.seedFlag);
   if (seeded === 'true') return;
 
   const lessons = [
-    { id: 'lesson-1', title: 'Workplace Safety Basics', description: 'Core safety procedures for all employees.', file_url: null },
+    { id: 'lesson-1', title: 'Workplace Safety Basics', description: '...', file_url: null },
     { id: 'lesson-2', title: 'Data Privacy Fundamentals', description: 'Protecting sensitive data.', file_url: null }
   ];
-  const quizzes = [];
-  const assignments = [];
-  const completions = [];
-  const employees = []; // start empty to allow first 404
-
   save(LS_KEYS.lessons, lessons);
-  save(LS_KEYS.quizzes, quizzes);
-  save(LS_KEYS.assignments, assignments);
-  save(LS_KEYS.completions, completions);
-  save(LS_KEYS.employees, employees);
+  save(LS_KEYS.quizzes, []);
+  save(LS_KEYS.assignments, []);
+  save(LS_KEYS.completions, []);
+  save(LS_KEYS.employees, []);
   window.localStorage.setItem(LS_KEYS.seedFlag, 'true');
 }
-
 seed();
 
 function getState() {
@@ -80,15 +75,24 @@ function setState(partial) {
   if (partial.completions) save(LS_KEYS.completions, partial.completions);
   if (partial.employees) save(LS_KEYS.employees, partial.employees);
 }
-function delay(ms = 30) {
-  return new Promise(res => setTimeout(res, ms));
+function delay(ms = 20) { return new Promise(r => setTimeout(r, ms)); }
+
+// PUBLIC_INTERFACE
+export async function getLessons() {
+  await delay();
+  return getState().lessons;
 }
 
 // PUBLIC_INTERFACE
 export async function createLesson(payload) {
   await delay();
   const { lessons } = getState();
-  const rec = { id: payload?.id || uuid(), title: payload?.title || 'Untitled', description: payload?.description || null, file_url: payload?.file_url || null };
+  const rec = {
+    id: payload?.id || uuid(),
+    title: payload?.title || 'Untitled',
+    description: payload?.description ?? null,
+    file_url: payload?.file_url ?? null
+  };
   setState({ lessons: [...lessons, rec] });
   return rec;
 }
@@ -119,8 +123,7 @@ export async function deleteLesson(id) {
 // PUBLIC_INTERFACE
 export async function getQuizzes() {
   await delay();
-  const { quizzes } = getState();
-  return quizzes;
+  return getState().quizzes;
 }
 
 // PUBLIC_INTERFACE
@@ -152,28 +155,24 @@ export async function deleteQuiz(id) {
   return { ok: true };
 }
 
-// PUBLIC_INTERFACE
-export async function getLessons() {
-  await delay();
-  const { lessons } = getState();
-  return lessons;
-}
-
+/**
+ * Stateful assignments:
+ * - First call per employee returns 404.
+ * - Subsequent calls ensure there is at least one assignment for lesson-1.
+ */
 // PUBLIC_INTERFACE
 export async function getAssignments(employee_id) {
   await delay();
-  // First attempt per employee returns 404 to match two-step flow in tests (first check may call assignments too)
-  const key = `${NS}:${VERSION}:assignments:first:${employee_id}`;
-  const first = window.sessionStorage.getItem(key) !== 'done';
-  if (first) {
-    window.sessionStorage.setItem(key, 'done');
-    const err = new Error('Not Found');
-    err.status = 404;
-    throw err;
+  const firstKey = `${NS}:${VERSION}:first-assign:${employee_id}`;
+  if (window.sessionStorage.getItem(firstKey) !== 'done') {
+    window.sessionStorage.setItem(firstKey, 'done');
+    const e = new Error('Not Found');
+    e.status = 404;
+    throw e;
   }
-
   const { assignments, lessons } = getState();
-  const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
+  const safety = lessons.find(l => l.id === 'lesson-1') || lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
+
   let list = assignments.filter(a => a.employee_id === employee_id);
   if (safety && !list.some(a => a.lesson_id === safety.id)) {
     const a = { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0, lesson_title: safety.title };
@@ -184,14 +183,15 @@ export async function getAssignments(employee_id) {
 }
 
 // PUBLIC_INTERFACE
-export async function getProgress(employee_id) {
+export async function assignLesson({ lesson_id, employee_id }) {
   await delay();
-  const { assignments } = getState();
-  const forEmp = assignments.filter(a => a.employee_id === employee_id);
-  const assigned = forEmp.length;
-  const completed = forEmp.filter(a => a.completed).length;
-  const percentage = assigned ? Math.round((completed / assigned) * 100) : 0;
-  return { assigned, completed, percentage };
+  const { assignments, lessons } = getState();
+  const exists = assignments.find(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
+  if (exists) return exists;
+  const lesson = lessons.find(l => l.id === lesson_id);
+  const a = { id: uuid(), lesson_id, employee_id, completed: false, progress: 0, lesson_title: lesson?.title };
+  setState({ assignments: [...assignments, a] });
+  return a;
 }
 
 // PUBLIC_INTERFACE
@@ -200,52 +200,48 @@ export async function completeLesson({ lesson_id, employee_id }) {
   const { assignments, completions } = getState();
   const idx = assignments.findIndex(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
   if (idx === -1) throw new Error('Assignment not found');
-  const nextAssignments = [...assignments];
-  nextAssignments[idx] = { ...nextAssignments[idx], completed: true, progress: 100 };
-  setState({ assignments: nextAssignments, completions: [...completions, { id: uuid(), lesson_id, employee_id }] });
+  const next = [...assignments];
+  next[idx] = { ...next[idx], completed: true, progress: 100 };
+  setState({ assignments: next, completions: [...completions, { id: uuid(), lesson_id, employee_id }] });
   return { ok: true };
 }
 
 // PUBLIC_INTERFACE
-export async function assignLesson({ lesson_id, employee_id }) {
+export async function getProgress(employee_id) {
   await delay();
-  const { assignments, lessons } = getState();
-  const existing = assignments.find(a => a.lesson_id === lesson_id && a.employee_id === employee_id);
-  if (existing) return existing;
-  const lesson = lessons.find(l => l.id === lesson_id);
-  const a = { id: uuid(), lesson_id, employee_id, completed: false, progress: 0, lesson_title: lesson?.title };
-  setState({ assignments: [...assignments, a] });
-  return a;
+  const { assignments } = getState();
+  const arr = assignments.filter(a => a.employee_id === employee_id);
+  const assigned = arr.length;
+  const completed = arr.filter(a => a.completed).length;
+  const percentage = assigned ? Math.round((completed / assigned) * 100) : 0;
+  return { assigned, completed, percentage };
 }
 
+/**
+ * Employee profile check:
+ * - First call returns 404 with status.
+ * - Second call returns a profile record and ensures lesson-1 assignment.
+ */
 // PUBLIC_INTERFACE
 export async function getEmployee(employee_id) {
   await delay();
-  const { employees, lessons, assignments } = getState();
-
-  // employee-123: first check -> 404, second -> success
-  const firstKey = `${NS}:${VERSION}:employees:first:${employee_id}`;
-  const firstCheck = window.sessionStorage.getItem(firstKey) !== 'done';
-  if (firstCheck) {
+  const firstKey = `${NS}:${VERSION}:first-emp:${employee_id}`;
+  if (window.sessionStorage.getItem(firstKey) !== 'done') {
     window.sessionStorage.setItem(firstKey, 'done');
-    const err = new Error('Employee not found');
-    err.status = 404;
-    throw err;
+    const e = new Error('Employee not found');
+    e.status = 404;
+    throw e;
   }
-
+  const { employees, lessons, assignments } = getState();
   let emp = employees.find(e => e.employee_id === employee_id);
   if (!emp) {
     emp = { employee_id, name: 'Test User' };
     setState({ employees: [...employees, emp] });
   }
-
-  // Ensure an assignment exists for Workplace Safety Basics
-  const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
-  const hasAssignment = assignments.some(a => a.employee_id === employee_id && a.lesson_id === safety?.id);
-  if (safety && !hasAssignment) {
+  const safety = lessons.find(l => l.id === 'lesson-1') || lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
+  if (safety && !assignments.some(a => a.employee_id === employee_id && a.lesson_id === safety.id)) {
     setState({ assignments: [...assignments, { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0, lesson_title: safety.title }] });
   }
-
   return { exists: true, employee: emp };
 }
 

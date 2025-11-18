@@ -18,27 +18,27 @@ describe('EmployeeDashboard API integration', () => {
       </MemoryRouter>
     );
 
-    // Enter an employee ID
     const input = await screen.findByLabelText(/Employee ID/i, {}, { timeout: 5000 });
     fireEvent.change(input, { target: { value: 'employee-123' } });
 
-    // First check: expect profile not found message
     const checkBtn = screen.getByRole('button', { name: /check/i });
     fireEvent.click(checkBtn);
 
     const notFound = await screen.findByText(/Profile not found/i, {}, { timeout: 10000 });
     expect(notFound).toBeInTheDocument();
 
-    // Second check: expect assigned lessons & specific lesson title
     fireEvent.click(checkBtn);
 
-    await waitFor(async () => {
-      expect(await screen.findByText(/Assigned Lessons/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      async () => {
+        expect(await screen.findByText(/Assigned Lessons/i)).toBeInTheDocument();
+        expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
   });
 
-  test('does not wrap <App /> with extra Router; component is wrapped only with MemoryRouter here', async () => {
+  test('component works in MemoryRouter wrapper without extra Router nesting', async () => {
     render(
       <MemoryRouter initialEntries={['/employee']}>
         <EmployeeDashboard />

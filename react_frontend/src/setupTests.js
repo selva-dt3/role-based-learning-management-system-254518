@@ -1,16 +1,10 @@
  /**
   * Global Jest setup for React Testing Library.
-  *
-  * - Forces mock API usage by setting REACT_APP_USE_MOCK_API=true BEFORE any imports
-  * - Mocks the API client module to route to src/api/mockApi.js (used by hooks/pages)
-  * - Adds jest-dom matchers
-  * - Provides minor browser polyfills and quiets noisy console warnings
+  * Ensures mock mode and mocks the exact api/client path resolving used by app code.
   */
-
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
-// Map the API client to our mock implementation so all code importing ./api/client
-// uses the mock under the hood. This must execute before tests import app code.
+// Mock the exact module path app imports: './api/client' relative to src files.
 jest.mock('./api/client', () => {
   // eslint-disable-next-line global-require
   const mockApi = require('./api/mockApi');
@@ -62,15 +56,13 @@ jest.mock('./api/client', () => {
       throw new Error(`Mocked client: route not implemented for ${method} ${p}`);
     },
     // PUBLIC_INTERFACE
-    apiUploadFile: async (file, optionalLessonId) =>
-      mockApi.uploadFile(file, optionalLessonId),
+    apiUploadFile: async (file, optionalLessonId) => mockApi.uploadFile(file, optionalLessonId),
   };
 });
 
-// jest-dom adds custom jest matchers for asserting on DOM nodes.
 import '@testing-library/jest-dom';
 
-// Polyfills and console noise filtering
+// Minor polyfills to avoid test environment noise.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query) => ({
@@ -85,14 +77,9 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-class ResizeObserverMock {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+class ResizeObserverMock { observe() {} unobserve() {} disconnect() {} }
 window.ResizeObserver = window.ResizeObserver || ResizeObserverMock;
 
-// Minimal Response polyfill for any code that constructs Response objects directly
 if (typeof global.Response === 'undefined') {
   global.Response = class {
     constructor(body, init = {}) {
@@ -102,9 +89,7 @@ if (typeof global.Response === 'undefined') {
       this._headers = new Map(Object.entries(init.headers || {}));
       this.ok = this.status >= 200 && this.status < 300;
     }
-    async json() {
-      try { return JSON.parse(this._body); } catch { return this._body; }
-    }
+    async json() { try { return JSON.parse(this._body); } catch { return this._body; } }
     async text() { return this._body; }
     headers = { get: (k) => (this._headers instanceof Map ? this._headers.get(k) : null) };
   };
@@ -115,16 +100,12 @@ const originalWarn = console.warn;
 beforeAll(() => {
   console.error = (...args) => {
     const msg = (args && args[0]) || '';
-    if (typeof msg === 'string' && (msg.includes('Warning:') || msg.includes('act(') || msg.includes('Not wrapped in act(') || msg.includes('An update to') || msg.includes('React Router') || msg.includes('deprecated'))) {
-      return;
-    }
+    if (typeof msg === 'string' && (msg.includes('Warning:') || msg.includes('act(') || msg.includes('Not wrapped in act(') || msg.includes('React Router') || msg.includes('deprecated'))) return;
     originalError(...args);
   };
   console.warn = (...args) => {
     const msg = (args && args[0]) || '';
-    if (typeof msg === 'string' && (msg.includes('React Router') || msg.includes('deprecated') || msg.includes('act(') || msg.includes('Not wrapped in act('))) {
-      return;
-    }
+    if (typeof msg === 'string' && (msg.includes('React Router') || msg.includes('deprecated') || msg.includes('act(') || msg.includes('Not wrapped in act('))) return;
     originalWarn(...args);
   };
 });
