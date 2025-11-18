@@ -6,7 +6,7 @@ import App from '../App';
 jest.setTimeout(20000);
 
 describe('Home role selection navigation', () => {
-  it('navigates to Employee, performs check twice, then shows Workplace Safety Basics', async () => {
+  it('navigates to Employee, performs two-step check, then shows Workplace Safety Basics', async () => {
     const user = userEvent.setup();
     render(<App />);
 

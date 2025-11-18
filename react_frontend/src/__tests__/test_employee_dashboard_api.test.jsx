@@ -11,7 +11,7 @@ describe('EmployeeDashboard API integration', () => {
     window.sessionStorage.clear();
   });
 
-  test('enter employee-123: first Check shows Profile not found, second shows Assigned Lessons with Workplace Safety Basics', async () => {
+  test('enter employee-123: first Check shows Profile not found (404), second shows Assigned Lessons and Workplace Safety Basics', async () => {
     render(
       <MemoryRouter initialEntries={['/employee']}>
         <EmployeeDashboard />
