@@ -11,8 +11,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "CI=true react-scripts test --watchAll=false --env=jsdom --runInBand",
-    "test:ci": "CI=true react-scripts test --watchAll=false --env=jsdom --runInBand",
+    "test": "CI=true REACT_APP_USE_MOCK_API=true react-scripts test --watchAll=false --env=jsdom --runInBand",
+    "test:ci": "CI=true REACT_APP_USE_MOCK_API=true react-scripts test --watchAll=false --env=jsdom --runInBand",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

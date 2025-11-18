@@ -1,6 +1,7 @@
- /**
+/**
  * Simple mock API utilities used by components when REACT_APP_USE_MOCK_API is true.
  * Deterministic data includes a lesson titled 'Workplace Safety Basics'.
+ * Note: Tests may rely on first-call 404 then success for assignments.
  */
 
 // Utilities
@@ -185,4 +186,11 @@ export function __resetMockData() {
   Object.values(LS_KEYS).forEach(k => window.localStorage.removeItem(k));
   window.sessionStorage.clear();
   seed();
+}
+
+// PUBLIC_INTERFACE
+export async function uploadFile(file, optionalLessonId) {
+  /** Return a deterministic mock URL for uploaded files. */
+  await delay();
+  return { url: `mock://uploads/${optionalLessonId || 'general'}/${(file && file.name) || 'file.bin'}` };
 }

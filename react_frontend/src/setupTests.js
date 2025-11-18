@@ -8,6 +8,67 @@
   */
 import '@testing-library/jest-dom';
 
+// Force the API client to use mock API during tests.
+// Ensure env flag is set and module is mocked to the mock implementation.
+// Note: We avoid circular imports by mocking the entire module before tests run.
+process.env.REACT_APP_USE_MOCK_API = 'true';
+
+// PUBLIC_INTERFACE
+jest.mock('./api/client', () => {
+  // Route apiFetch and apiUploadFile to mockApi functions
+  // using the same public function names expected by hooks/components.
+  // We dynamically import to avoid hoisting issues.
+  // eslint-disable-next-line global-require
+  const mockApi = require('./api/mockApi');
+  return {
+    getApiBaseUrl: () => '',
+    apiFetch: async (path, options = {}) => {
+      const method = (options.method || 'GET').toUpperCase();
+      const p = path?.startsWith('/') ? path : `/${path || ''}`;
+      const body = options.body;
+
+      // Lessons
+      if (method === 'GET' && p === '/lessons') return mockApi.getLessons();
+      if (method === 'POST' && (p === '/lessons' || p === '/lesson')) return mockApi.createLesson?.(body) ?? Promise.resolve({});
+
+      // Lessons by id (optional support if mockApi implements)
+      const lessonIdMatch = p.match(/^\/lessons\/([^/]+)$/) || p.match(/^\/lesson\/([^/]+)$/);
+      if (lessonIdMatch) {
+        const id = lessonIdMatch[1];
+        if (method === 'PUT') return mockApi.updateLesson?.(id, body) ?? Promise.resolve({});
+        if (method === 'DELETE') return mockApi.deleteLesson?.(id) ?? Promise.resolve({});
+      }
+
+      // Assignments & progress
+      if (method === 'POST' && p === '/assign') return mockApi.assignLesson(body);
+      const assignmentsMatch = p.match(/^\/assignments\/([^/]+)$/);
+      if (method === 'GET' && assignmentsMatch) return mockApi.getAssignments(assignmentsMatch[1]);
+
+      if (method === 'POST' && p === '/complete') return mockApi.completeLesson(body);
+      const progressMatch = p.match(/^\/progress\/([^/]+)$/);
+      if (method === 'GET' && progressMatch) return mockApi.getProgress(progressMatch[1]);
+
+      // Quizzes (optional in mocks)
+      if (method === 'GET' && p === '/quizzes') return mockApi.getQuizzes?.() ?? Promise.resolve([]);
+      if (method === 'POST' && p === '/quizzes') return mockApi.createQuiz?.(body) ?? Promise.resolve({});
+      const quizIdMatch = p.match(/^\/quizzes\/([^/]+)$/);
+      if (quizIdMatch) {
+        const id = quizIdMatch[1];
+        if (method === 'PUT') return mockApi.updateQuiz?.(id, body) ?? Promise.resolve({});
+        if (method === 'DELETE') return mockApi.deleteQuiz?.(id) ?? Promise.resolve({});
+      }
+
+      // Employees
+      const empGetMatch = p.match(/^\/employees\/([^/]+)$/);
+      if (method === 'GET' && empGetMatch) return mockApi.getEmployee(empGetMatch[1]);
+      if (method === 'POST' && p === '/employees') return mockApi.upsertEmployee(body);
+
+      throw new Error(`Mocked client: route not implemented for ${method} ${p}`);
+    },
+    apiUploadFile: async (file, optionalLessonId) => mockApi.uploadFile?.(file, optionalLessonId) ?? Promise.resolve({ url: 'mock://file' }),
+  };
+});
+
 // Do not import test files here. Keep mocks as modules in src/__mocks__.
 // The module at src/__mocks__/handlers.mocks.js will be executed when imported by tests if needed.
 

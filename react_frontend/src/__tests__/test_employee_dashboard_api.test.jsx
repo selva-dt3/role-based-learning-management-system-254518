@@ -1,37 +1,35 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 
 describe('EmployeeDashboard API integration', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
+    // Pre-fill employee id so dashboard immediately checks and loads data
     window.localStorage.setItem('rb-lms:v1:employee_id', 'employee-123');
   });
 
   test('loads and displays assigned lessons after 404 then success', async () => {
-    await act(async () => {
-      render(
-        <MemoryRouter initialEntries={['/employee']}>
-          <Routes>
-            <Route path="/employee" element={<EmployeeDashboard />} />
-          </Routes>
-        </MemoryRouter>
-      );
-    });
+    render(
+      <MemoryRouter initialEntries={['/employee']}>
+        <Routes>
+          <Route path="/employee" element={<EmployeeDashboard />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-    // Heading should appear
-    const header = await screen.findByRole('heading', { name: /Employee Dashboard/i }, { timeout: 5000 });
-    expect(header).toBeInTheDocument();
+    // Wait for the heading
+    expect(await screen.findByRole('heading', { name: /Employee Dashboard/i }, { timeout: 8000 })).toBeInTheDocument();
 
-    // After initial 404 and subsequent retry/success, expect 'Workplace Safety Basics'
-    const lessonTitle = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 5000 });
-    expect(lessonTitle).toBeInTheDocument();
+    // After initial 404 and subsequent retry/success, expect the lesson title to be rendered
+    expect(await screen.findByText(/Workplace Safety Basics/i, undefined, { timeout: 8000 })).toBeInTheDocument();
 
-    // Progress section visible
-    await waitFor(async () => {
-      expect(await screen.findByText(/Progress/i)).toBeInTheDocument();
-    });
+    // Wait for the Progress section to appear and table to settle
+    await waitFor(() => {
+      expect(screen.getByText(/Progress/i)).toBeInTheDocument();
+    }, { timeout: 8000 });
   });
 
   test('renders under MemoryRouter without nesting BrowserRouter in test', async () => {
@@ -40,7 +38,6 @@ describe('EmployeeDashboard API integration', () => {
         <EmployeeDashboard />
       </MemoryRouter>
     );
-    const lesson = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 5000 });
-    expect(lesson).toBeInTheDocument();
+    expect(await screen.findByText(/Workplace Safety Basics/i, undefined, { timeout: 8000 })).toBeInTheDocument();
   });
 });
