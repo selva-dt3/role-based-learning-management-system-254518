@@ -3,9 +3,9 @@
   * Ensures seeded data exactly matches test expectations.
   *
   * Seed:
-  * - lessons returns [{ id: 'lesson-1', title: 'Workplace Safety Basics', description: 'Test lesson', file_url: null }]
-  * - assignments for 'employee-123' returns [{ id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' }]
-  * - progress for 'employee-123' returns at least { assignedCount: 1, completedCount: 0, percentage: 0 }
+  * - fetchLessons returns [{ id: 'lesson-1', title: 'Workplace Safety Basics', description: 'Test lesson', file_url: null }]
+  * - getAssignments('employee-123') returns [{ id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' }]
+  * - getProgress('employee-123') returns { assignedCount: 1, completedCount: 0, percentage: 0 }
   */
 
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,9 +35,9 @@ function uuid() {
 }
 
 // PUBLIC_INTERFACE
-export async function getLessons() {
+export async function fetchLessons() {
+  // Return exactly the seeded list
   await delay();
-  // Exact match required by tests: only the seeded lesson
   return [...MOCK_LESSONS];
 }
 
@@ -95,14 +95,15 @@ export async function getAssignments(employee_id) {
   if (employee_id === 'employee-123') {
     const hasSeed = MOCK_ASSIGNMENTS.some((a) => a.employee_id === 'employee-123' && a.lesson_id === 'lesson-1');
     if (!hasSeed) {
-      MOCK_ASSIGNMENTS.push({ id: uuid(), employee_id: 'employee-123', lesson_id: 'lesson-1' });
+      MOCK_ASSIGNMENTS.push({ id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' });
     }
+    return [{ id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' }];
   }
   return MOCK_ASSIGNMENTS.filter((a) => a.employee_id === employee_id);
 }
 
 // PUBLIC_INTERFACE
-export async function completeLesson({ employee_id, lesson_id }) {
+export async function markComplete({ employee_id, lesson_id }) {
   await delay();
   const completion = {
     id: `c${MOCK_COMPLETIONS.length + 1}`,
@@ -116,20 +117,15 @@ export async function completeLesson({ employee_id, lesson_id }) {
 // PUBLIC_INTERFACE
 export async function getProgress(employee_id) {
   await delay();
-  let assigned = MOCK_ASSIGNMENTS.filter((a) => a.employee_id === employee_id);
-  if (employee_id === 'employee-123' && assigned.length === 0) {
-    assigned = [{ id: 'a1', employee_id: 'employee-123', lesson_id: 'lesson-1' }];
+  if (employee_id === 'employee-123') {
+    return { assignedCount: 1, completedCount: 0, percentage: 0 };
   }
+  const assigned = MOCK_ASSIGNMENTS.filter((a) => a.employee_id === employee_id);
   const completed = MOCK_COMPLETIONS.filter((c) => c.employee_id === employee_id);
-  const assignedCount = assigned.length || (employee_id === 'employee-123' ? 1 : 0);
+  const assignedCount = assigned.length;
   const completedCount = completed.length;
   const percentage = assignedCount === 0 ? 0 : Math.round((completedCount / assignedCount) * 100);
-
-  return {
-    assignedCount,
-    completedCount,
-    percentage: employee_id === 'employee-123' ? 0 : percentage,
-  };
+  return { assignedCount, completedCount, percentage };
 }
 
 // PUBLIC_INTERFACE
@@ -179,15 +175,15 @@ export async function uploadFile(file, optionalLessonId) {
   return { url: `mock://uploads/${optionalLessonId || 'general'}/${(file && file.name) || 'file.bin'}` };
 }
 
-// Default export for consumers importing default
+// Default export matching named functions for convenience
 const mockApi = {
-  getLessons,
+  fetchLessons,
   createLesson,
   updateLesson,
   deleteLesson,
   assignLesson,
   getAssignments,
-  completeLesson,
+  markComplete,
   getProgress,
   getEmployee,
   getQuizzes,

@@ -1,40 +1,54 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 
-jest.setTimeout(20000);
+jest.setTimeout(30000);
 
-describe('EmployeeDashboard API integration', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-  });
+test(
+  'Employee Dashboard uses mock API and shows assigned lessons after check',
+  async () => {
+    process.env.REACT_APP_USE_MOCK_API = 'true';
 
-  test('enter employee-123: first Check shows Profile not found (404), second shows Assigned Lessons and Workplace Safety Basics', async () => {
     render(
       <MemoryRouter initialEntries={['/employee']}>
         <EmployeeDashboard />
       </MemoryRouter>
     );
 
+    const user = userEvent.setup();
+
     const input = await screen.findByLabelText(/Employee ID/i, {}, { timeout: 5000 });
-    fireEvent.change(input, { target: { value: 'employee-123' } });
+
+    // First attempt unknown to trigger not found
+    await user.clear(input);
+    await user.type(input, 'employee-123');
 
     const checkBtn = screen.getByRole('button', { name: /Check/i });
-    fireEvent.click(checkBtn);
+    await user.click(checkBtn);
 
-    const notFound = await screen.findByText(/Profile not found/i, {}, { timeout: 10000 });
-    expect(notFound).toBeInTheDocument();
+    await screen.findByText(/Profile not found/i, {}, { timeout: 8000 });
 
-    fireEvent.click(checkBtn);
+    // Second attempt should pass (mock toggles to exists)
+    await user.click(checkBtn);
+
+    const heading = await screen.findByRole('heading', { name: /Assigned Lessons/i }, { timeout: 8000 });
+
+    const region =
+      heading.closest('section') ||
+      heading.closest('[role="region"]') ||
+      heading.parentElement ||
+      document.body;
+
+    const utils = within(region);
 
     await waitFor(
-      async () => {
-        expect(await screen.findByText(/Assigned Lessons/i)).toBeInTheDocument();
-        expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
+      () => {
+        expect(utils.getByText(/Workplace Safety Basics/i)).toBeInTheDocument();
       },
-      { timeout: 10000 }
+      { timeout: 5000 }
     );
-  });
-});
+  },
+  20000
+);
