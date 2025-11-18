@@ -11,11 +11,22 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "CI=true react-scripts test --watchAll=false --env=jsdom --runInBand",
+    "test:ci": "CI=true react-scripts test --watchAll=false --env=jsdom --runInBand",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": "react-app"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/setupTests.js"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.[jt]s?(x)",
+      "<rootDir>/src/**/*.(spec|test).[jt]s?(x)"
+    ]
   },
   "browserslist": {
     "production": [
@@ -30,6 +41,9 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "cross-env": "^7.0.3"
   }
 }

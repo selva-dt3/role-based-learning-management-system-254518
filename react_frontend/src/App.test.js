@@ -1,8 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
-
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+/**
+ * This file intentionally left blank; real tests live under __tests__.
+ * Keeping file to avoid accidental imports; CRA will pick up tests via jest config.
+ */
+export {};

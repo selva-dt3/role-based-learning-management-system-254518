@@ -113,5 +113,6 @@ Notes:
 ## Scripts
 
 - `npm start` Start dev server
-- `npm test` Run tests
+- `npm test` Run tests (CI-friendly: no watch, jsdom)
+- `npm run test:ci` Explicit CI run (same as test)
 - `npm run build` Production build
