@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
@@ -54,13 +54,11 @@ describe('EmployeeDashboard API interactions', () => {
     // Click Check again should trigger success path and load assignments
     await user.click(screen.getByRole('button', { name: /Check/i }));
 
-    // Loading state may appear; then assigned lessons visible
-    await waitFor(() => {
-      expect(screen.getByText(/Assigned Lessons/i)).toBeInTheDocument();
-    });
+    // Await UI updates for the success flow
+    expect(await screen.findByText(/Assigned Lessons/i)).toBeInTheDocument();
 
-    // Verify one assignment card rendered with lesson title
-    expect(screen.getByText(/Workplace Safety Basics/i)).toBeInTheDocument();
+    // Verify one assignment card rendered with lesson title (await async render)
+    expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
 
     // Ensure our calls happened in expected order
     expect(apiFetch).toHaveBeenNthCalledWith(1, '/employees/emp-123', { method: 'GET' });
