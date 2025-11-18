@@ -50,13 +50,10 @@ function seed() {
     { id: 'lesson-2', title: 'Data Privacy Fundamentals', description: 'Protecting sensitive data.', file_url: null }
   ];
   const quizzes = [];
-  const assignments = [
-    { id: 'assign-1', lesson_id: 'lesson-1', employee_id: 'employee-123', completed: false, progress: 0 }
-  ];
+  // keep initial assignments empty; tests expect first check to not find profile/assignments
+  const assignments = [];
   const completions = [];
-  const employees = [
-    { employee_id: 'employee-123', name: 'Test User' }
-  ];
+  const employees = []; // start with no employees so first check returns 404
 
   save(LS_KEYS.lessons, lessons);
   save(LS_KEYS.quizzes, quizzes);
@@ -88,6 +85,76 @@ function delay(ms = 50) {
   return new Promise(res => setTimeout(res, ms));
 }
 
+// --- Lessons CRUD (minimal) ---
+// PUBLIC_INTERFACE
+export async function createLesson(payload) {
+  await delay();
+  const { lessons } = getState();
+  const rec = { id: payload?.id || uuid(), title: payload?.title || 'Untitled', description: payload?.description || null, file_url: payload?.file_url || null };
+  setState({ lessons: [...lessons, rec] });
+  return rec;
+}
+
+// PUBLIC_INTERFACE
+export async function updateLesson(id, updates) {
+  await delay();
+  const { lessons } = getState();
+  const idx = lessons.findIndex(l => l.id === id);
+  if (idx === -1) throw new Error('Lesson not found');
+  const next = [...lessons];
+  next[idx] = { ...next[idx], ...updates };
+  setState({ lessons: next });
+  return next[idx];
+}
+
+// PUBLIC_INTERFACE
+export async function deleteLesson(id) {
+  await delay();
+  const { lessons, assignments } = getState();
+  setState({
+    lessons: lessons.filter(l => l.id !== id),
+    assignments: assignments.filter(a => a.lesson_id !== id)
+  });
+  return { ok: true };
+}
+
+// --- Quizzes CRUD (minimal) ---
+// PUBLIC_INTERFACE
+export async function getQuizzes() {
+  await delay();
+  const { quizzes } = getState();
+  return quizzes;
+}
+
+// PUBLIC_INTERFACE
+export async function createQuiz(payload) {
+  await delay();
+  const { quizzes } = getState();
+  const rec = { id: payload?.id || uuid(), lesson_id: payload?.lesson_id, title: payload?.title || 'Quiz', questions: payload?.questions || [] };
+  setState({ quizzes: [...quizzes, rec] });
+  return rec;
+}
+
+// PUBLIC_INTERFACE
+export async function updateQuiz(id, updates) {
+  await delay();
+  const { quizzes } = getState();
+  const idx = quizzes.findIndex(q => q.id === id);
+  if (idx === -1) throw new Error('Quiz not found');
+  const next = [...quizzes];
+  next[idx] = { ...next[idx], ...updates };
+  setState({ quizzes: next });
+  return next[idx];
+}
+
+// PUBLIC_INTERFACE
+export async function deleteQuiz(id) {
+  await delay();
+  const { quizzes } = getState();
+  setState({ quizzes: quizzes.filter(q => q.id !== id) });
+  return { ok: true };
+}
+
 // PUBLIC_INTERFACE
 export async function getLessons() {
   /** Return list of lessons (deterministic). */
@@ -98,7 +165,10 @@ export async function getLessons() {
 
 // PUBLIC_INTERFACE
 export async function getAssignments(employee_id) {
-  /** First call simulates 404 via throw; next calls return assignments. */
+  /**
+   * First call simulates 404 via throw; next calls return assignments.
+   * Ensures at least the Workplace Safety Basics assignment exists for the employee.
+   */
   await delay();
   const key = `${NS}:${VERSION}:assignments:first:${employee_id}`;
   const first = window.sessionStorage.getItem(key) !== 'done';
@@ -108,8 +178,15 @@ export async function getAssignments(employee_id) {
     err.status = 404;
     throw err;
   }
-  const { assignments } = getState();
-  return assignments.filter(a => a.employee_id === employee_id);
+  const { assignments, lessons } = getState();
+  const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
+  let list = assignments.filter(a => a.employee_id === employee_id);
+  if (safety && !list.some(a => a.lesson_id === safety.id)) {
+    const a = { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0 };
+    setState({ assignments: [...assignments, a] });
+    list = [...list, a];
+  }
+  return list;
 }
 
 // PUBLIC_INTERFACE
@@ -151,16 +228,35 @@ export async function assignLesson({ lesson_id, employee_id }) {
 
 // PUBLIC_INTERFACE
 export async function getEmployee(employee_id) {
-  /** Return { exists, employee? } */
+  /** Return { exists, employee? } with stateful first 404 then auto-create on second call. */
   await delay();
-  const { employees } = getState();
-  const found = employees.find(e => e.employee_id === employee_id);
-  if (!found) {
+  const { employees, lessons, assignments } = getState();
+
+  // Stateful: first call per employee returns 404; second call auto-creates profile and default assignments
+  const firstKey = `${NS}:${VERSION}:employees:first:${employee_id}`;
+  const firstCheck = window.sessionStorage.getItem(firstKey) !== 'done';
+  if (firstCheck) {
+    window.sessionStorage.setItem(firstKey, 'done');
     const err = new Error('Employee not found');
     err.status = 404;
     throw err;
   }
-  return { exists: true, employee: found };
+
+  // If not present after first check, create a basic profile
+  let emp = employees.find(e => e.employee_id === employee_id);
+  if (!emp) {
+    emp = { employee_id, name: 'Test User' };
+    setState({ employees: [...employees, emp] });
+  }
+
+  // Ensure an assignment exists for Workplace Safety Basics
+  const safety = lessons.find(l => l.title === 'Workplace Safety Basics') || lessons[0];
+  const hasAssignment = assignments.some(a => a.employee_id === employee_id && a.lesson_id === safety?.id);
+  if (safety && !hasAssignment) {
+    setState({ assignments: [...assignments, { id: uuid(), lesson_id: safety.id, employee_id, completed: false, progress: 0 }] });
+  }
+
+  return { exists: true, employee: emp };
 }
 
 // PUBLIC_INTERFACE
