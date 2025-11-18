@@ -20,7 +20,15 @@ describe('useApi hook', () => {
       { timeout: 6000 }
     );
 
-    const hasSafety = result.current.data?.some((l) => l.title === 'Workplace Safety Basics');
+    const hasSafety = result.current.data?.some((l) => l.title === 'Workplace Safety Basics' && l.id === 'lesson-1');
     expect(hasSafety).toBe(true);
+  });
+
+  test('returns non-empty progress object for employee-123', async () => {
+    const { result } = renderHook(() => useApi());
+    const progress = await result.current.get('/progress/employee-123');
+    expect(progress).toBeTruthy();
+    expect(progress).toHaveProperty('assignedCount');
+    expect(progress.assignedCount).toBeGreaterThanOrEqual(1);
   });
 });

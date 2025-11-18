@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 
@@ -19,13 +19,18 @@ describe('Home role selection navigation', () => {
     await user.clear(input);
     await user.type(input, 'employee-123');
 
-    const checkBtn = screen.getByRole('button', { name: /check/i });
+    const checkBtn = screen.getByRole('button', { name: /Check/i });
     await user.click(checkBtn);
     await screen.findByText(/Profile not found/i, {}, { timeout: 8000 });
 
     await user.click(checkBtn);
 
-    expect(await screen.findByText(/Assigned Lessons/i, {}, { timeout: 10000 })).toBeInTheDocument();
-    expect(await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 10000 })).toBeInTheDocument();
+    const sectionHeading = await screen.findByText(/Assigned Lessons/i, {}, { timeout: 10000 });
+    const region = sectionHeading.closest('section') || sectionHeading.parentElement;
+    expect(region).toBeTruthy();
+
+    const utils = within(region);
+    const items = await utils.findAllByText(/Workplace Safety Basics/i, {}, { timeout: 10000 });
+    expect(items.length).toBeGreaterThan(0);
   });
 });

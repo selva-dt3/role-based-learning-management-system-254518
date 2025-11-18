@@ -21,7 +21,7 @@ describe('EmployeeDashboard API integration', () => {
     const input = await screen.findByLabelText(/Employee ID/i, {}, { timeout: 5000 });
     fireEvent.change(input, { target: { value: 'employee-123' } });
 
-    const checkBtn = screen.getByRole('button', { name: /check/i });
+    const checkBtn = screen.getByRole('button', { name: /Check/i });
     fireEvent.click(checkBtn);
 
     const notFound = await screen.findByText(/Profile not found/i, {}, { timeout: 10000 });
@@ -48,7 +48,7 @@ describe('EmployeeDashboard API integration', () => {
     const input = await screen.findByLabelText(/Employee ID/i);
     fireEvent.change(input, { target: { value: 'employee-123' } });
 
-    const checkBtn = screen.getByRole('button', { name: /check/i });
+    const checkBtn = screen.getByRole('button', { name: /Check/i });
     fireEvent.click(checkBtn);
     await screen.findByText(/Profile not found/i);
 

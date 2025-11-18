@@ -7,6 +7,7 @@ export default function useApi(initialPath = '') {
    * React hook to call REST endpoints.
    * - Pass initialPath to auto-fetch (string). Pass null/'' to disable auto-fetch.
    * - Provides get, post, put, del helpers and upload.
+   * In tests, setupTests.js mocks ../api/client to route to ./api/mockApi.
    */
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(Boolean(initialPath));

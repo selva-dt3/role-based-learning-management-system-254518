@@ -5,7 +5,6 @@
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
 // Mock the exact module path app imports: './api/client' relative to src files.
-// Important: This path must match import in hooks and pages (../api/client resolves to ./api/client from src root)
 jest.mock('./api/client', () => {
   // eslint-disable-next-line global-require
   const mockApi = require('./api/mockApi');

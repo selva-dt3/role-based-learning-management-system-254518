@@ -1,15 +1,15 @@
  /**
   * Mock API with deterministic, stateful behavior for tests.
   *
-  * Requirements implemented:
-  * - For employee-123 (and any id), first getEmployee call returns 404; second returns a profile.
-  * - getAssignments for employee-123 returns a deterministic list containing lesson-1; also supports general flow for others with first-call 404.
-  * - listLessons includes:
-  *    { id: 'lesson-1', title: 'Workplace Safety Basics', description: '...', file_url: null }
+  * Guarantees:
+  * - lessons include { id: 'lesson-1', title: 'Workplace Safety Basics' }
+  * - assignments for 'employee-123' include lesson-1
+  * - progress for any employee returns a non-empty object
   *
-  * The store is persisted in localStorage; per-test isolation should clear localStorage and sessionStorage.
+  * Additional behavior:
+  * - getEmployee: first call per employee returns 404; second returns profile
+  * - getAssignments: for non-employee-123, first call 404 then returns list with lesson-1
   */
-
 const NS = 'rb-lms';
 const VERSION = 'v1';
 const LS_KEYS = {
@@ -39,20 +39,21 @@ function uuid() {
   });
 }
 
-/**
- * Seed deterministic lessons that include the Workplace Safety Basics entry.
- */
+/** Seed deterministic lessons including the required Workplace Safety Basics. */
 function seed() {
   const seeded = window.localStorage.getItem(LS_KEYS.seedFlag);
   if (seeded === 'true') return;
 
   const lessons = [
-    { id: 'lesson-1', title: 'Workplace Safety Basics', description: '...', file_url: null },
+    { id: 'lesson-1', title: 'Workplace Safety Basics', description: 'Intro to safety basics.', file_url: null },
     { id: 'lesson-2', title: 'Data Privacy Fundamentals', description: 'Protecting sensitive data.', file_url: null }
   ];
   save(LS_KEYS.lessons, lessons);
   save(LS_KEYS.quizzes, []);
-  save(LS_KEYS.assignments, []);
+  save(LS_KEYS.assignments, [
+    // Pre-seed employee-123 with lesson-1 assignment
+    { id: 'assign-1', lesson_id: 'lesson-1', employee_id: 'employee-123', completed: false, progress: 0, lesson_title: 'Workplace Safety Basics' }
+  ]);
   save(LS_KEYS.completions, []);
   save(LS_KEYS.employees, []);
   window.localStorage.setItem(LS_KEYS.seedFlag, 'true');
@@ -88,7 +89,7 @@ export async function createLesson(payload) {
   await delay();
   const { lessons } = getState();
   const rec = {
-    id: payload?.id || uuid(),
+    id: payload?.id || `lesson-${lessons.length + 1}`,
     title: payload?.title || 'Untitled',
     description: payload?.description ?? null,
     file_url: payload?.file_url ?? null
@@ -156,9 +157,9 @@ export async function deleteQuiz(id) {
 }
 
 /**
- * Stateful assignments:
- * - First call per employee returns 404.
- * - Subsequent calls ensure there is at least one assignment for lesson-1.
+ * Assignments:
+ * - employee-123 always has lesson-1
+ * - other employees: first call 404, then ensure lesson-1 present
  */
 // PUBLIC_INTERFACE
 export async function getAssignments(employee_id) {
@@ -169,12 +170,11 @@ export async function getAssignments(employee_id) {
     lessons.find(l => l.title === 'Workplace Safety Basics') ||
     lessons[0];
 
-  // Special case for employee-123: always return deterministic assignment list
   if (employee_id === 'employee-123') {
     let list = assignments.filter(a => a.employee_id === employee_id);
     if (safety && !list.some(a => a.lesson_id === safety.id)) {
       const a = {
-        id: 'a1',
+        id: 'assign-fixed-1',
         lesson_id: safety.id,
         employee_id,
         completed: false,
@@ -187,7 +187,6 @@ export async function getAssignments(employee_id) {
     return list;
   }
 
-  // Default flow for all other employees: first call 404, then return list ensuring lesson-1 present
   const firstKey = `${NS}:${VERSION}:first-assign:${employee_id}`;
   if (window.sessionStorage.getItem(firstKey) !== 'done') {
     window.sessionStorage.setItem(firstKey, 'done');
@@ -241,17 +240,13 @@ export async function getProgress(employee_id) {
   await delay();
   const { assignments } = getState();
   const arr = assignments.filter(a => a.employee_id === employee_id);
-  const assigned = arr.length;
-  const completed = arr.filter(a => a.completed).length;
-  const percentage = assigned ? Math.round((completed / assigned) * 100) : 0;
-  return { assigned, completed, percentage };
+  const assignedCount = arr.length;
+  const completedCount = arr.filter(a => a.completed).length;
+  const percentage = assignedCount ? Math.round((completedCount / assignedCount) * 100) : 0;
+  return { assignedCount, completedCount, percentage };
 }
 
-/**
- * Employee profile check:
- * - First call returns 404 with status.
- * - Second call returns a profile record and ensures lesson-1 assignment.
- */
+/** Employee profile: first call 404, second returns profile and ensures assignment of lesson-1. */
 // PUBLIC_INTERFACE
 export async function getEmployee(employee_id) {
   await delay();
