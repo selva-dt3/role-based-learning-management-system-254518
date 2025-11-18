@@ -12,7 +12,7 @@ import '@testing-library/jest-dom';
 // 1) Ensure mock API is used in tests
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
-// 1a) Hard-mock the API client so all code importing ../api/client uses mockApi underneath
+// 1a) Hard-mock the API client so all code importing ./api/client uses mockApi underneath
 jest.mock('./api/client', () => {
   // eslint-disable-next-line global-require
   const mockApi = require('./api/mockApi');
