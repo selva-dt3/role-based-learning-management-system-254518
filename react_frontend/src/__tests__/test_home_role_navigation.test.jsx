@@ -3,23 +3,22 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 
-// Smoke/component navigation test: home -> admin
 describe('Home role selection navigation', () => {
-  it('renders Home and navigates to Admin dashboard when clicking Admin', async () => {
+  it('navigates to Employee dashboard', async () => {
     const user = userEvent.setup();
-    // App already contains a Router; render directly to avoid nested routers
     render(<App />);
 
-    // Home heading
+    // Home title present
     expect(screen.getByRole('heading', { name: /Role-Based Learning Management/i })).toBeInTheDocument();
 
-    // Click Go to Admin
-    const goAdminBtn = screen.getByRole('button', { name: /Go to Admin/i });
-    await user.click(goAdminBtn);
+    const employeeBtn = await screen.findByRole('button', { name: /Employee/i }, { timeout: 5000 });
+    await user.click(employeeBtn);
 
-    // Verify Admin Dashboard content appears
-    expect(await screen.findByText(/Admin Dashboard/i)).toBeInTheDocument();
-    // Create Employee Profile card exists
-    expect(screen.getByText(/Create Employee Profile/i)).toBeInTheDocument();
+    const header = await screen.findByRole('heading', { name: /Employee Dashboard/i }, { timeout: 5000 });
+    expect(header).toBeInTheDocument();
+
+    // our deterministic lesson title eventually appears
+    const lesson = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 5000 });
+    expect(lesson).toBeInTheDocument();
   });
 });

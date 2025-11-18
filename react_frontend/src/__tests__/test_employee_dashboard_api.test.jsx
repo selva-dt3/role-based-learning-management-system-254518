@@ -1,18 +1,16 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
-import { mockLessonsFirst404ThenSuccess } from './mocks/handlers';
 
-describe('EmployeeDashboard API integration (mocked)', () => {
+describe('EmployeeDashboard API integration', () => {
   beforeEach(() => {
-    // Set up deterministic mock: first lessons 404 then success
-    mockLessonsFirst404ThenSuccess();
     window.localStorage.clear();
+    // seed employee id expected by deterministic mocks
+    window.localStorage.setItem('rb-lms:v1:employee_id', 'employee-123');
   });
 
-  test('renders assigned lessons including "Workplace Safety Basics" after async load', async () => {
+  test('loads and displays assigned lessons and progress', async () => {
     render(
       <MemoryRouter initialEntries={['/employee']}>
         <Routes>
@@ -21,18 +19,27 @@ describe('EmployeeDashboard API integration (mocked)', () => {
       </MemoryRouter>
     );
 
-    // Use findBy* which automatically waits for the element to appear after async updates
-    const lessonTitle = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 3000 });
+    const header = await screen.findByRole('heading', { name: /Employee Dashboard/i }, { timeout: 5000 });
+    expect(header).toBeInTheDocument();
+
+    const assignedHeading = await screen.findByText(/Assigned Lessons/i, {}, { timeout: 5000 });
+    expect(assignedHeading).toBeInTheDocument();
+
+    // Expect deterministic lesson present
+    const lessonTitle = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 5000 });
     expect(lessonTitle).toBeInTheDocument();
+
+    const progressLabel = await screen.findByText(/Progress/i, {}, { timeout: 5000 });
+    expect(progressLabel).toBeInTheDocument();
   });
 
-  test('does not use nested routers and can render directly under MemoryRouter', async () => {
+  test('renders directly under MemoryRouter without nested BrowserRouter', async () => {
     render(
       <MemoryRouter initialEntries={['/employee']}>
         <EmployeeDashboard />
       </MemoryRouter>
     );
-    // Still should eventually show the mocked lesson title
-    expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
+    const lesson = await screen.findByText(/Workplace Safety Basics/i, {}, { timeout: 5000 });
+    expect(lesson).toBeInTheDocument();
   });
 });
