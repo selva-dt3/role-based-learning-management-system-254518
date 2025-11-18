@@ -8,7 +8,7 @@ describe('useApi hook', () => {
     window.sessionStorage.clear();
   });
 
-  test('fetches lessons and includes Workplace Safety Basics', async () => {
+  test('data-fetching mode: /lessons includes Workplace Safety Basics', async () => {
     const { result } = renderHook(() => useApi('/lessons'));
 
     await waitFor(
@@ -24,7 +24,7 @@ describe('useApi hook', () => {
     expect(hasSafety).toBe(true);
   });
 
-  test('returns non-empty progress object for employee-123', async () => {
+  test('client mode: get progress for employee-123', async () => {
     const { result } = renderHook(() => useApi());
     const progress = await result.current.get('/progress/employee-123');
     expect(progress).toBeTruthy();

@@ -1,12 +1,11 @@
  /**
   * Global Jest setup for React tests.
   * - Force mock API usage before any imports
-  * - Map the API client module path used by the app ('./api/client') to './api/mockApi'
-  * - Do not initialize MSW or other fetch mocks that could conflict
+  * - Mock the API client with our deterministic mockApi
   */
 process.env.REACT_APP_USE_MOCK_API = 'true';
 
-// Map the exact module path used by app code to the mock implementation.
+// Ensure any hook that imports client will receive the mock
 jest.mock('./api/client', () => {
   const mockApi = require('./api/mockApi');
   return {
@@ -20,11 +19,11 @@ jest.mock('./api/client', () => {
       const body = options.body;
 
       // Lessons
-      if (method === 'GET' && p === '/lessons') return mockApi.getLessons();
-      if (method === 'POST' && (p === '/lessons' || p === '/lesson')) return mockApi.createLesson(body);
+      if (method === 'GET' && p === '/lessons') return mockApi.fetchLessons();
+      if (method === 'POST' && p === '/lessons') return mockApi.createLesson(body);
 
       // Lessons by id
-      const lessonIdMatch = p.match(/^\/lessons\/([^/]+)$/) || p.match(/^\/lesson\/([^/]+)$/);
+      const lessonIdMatch = p.match(/^\/lessons\/([^/]+)$/);
       if (lessonIdMatch) {
         const id = lessonIdMatch[1];
         if (method === 'PUT') return mockApi.updateLesson(id, body);
@@ -36,9 +35,13 @@ jest.mock('./api/client', () => {
       const assignmentsMatch = p.match(/^\/assignments\/([^/]+)$/);
       if (method === 'GET' && assignmentsMatch) return mockApi.getAssignments(assignmentsMatch[1]);
 
-      if (method === 'POST' && p === '/complete') return mockApi.completeLesson(body);
+      if (method === 'POST' && p === '/complete') return mockApi.markComplete(body);
       const progressMatch = p.match(/^\/progress\/([^/]+)$/);
       if (method === 'GET' && progressMatch) return mockApi.getProgress(progressMatch[1]);
+
+      // Employees
+      const empGetMatch = p.match(/^\/employees\/([^/]+)$/);
+      if (method === 'GET' && empGetMatch) return mockApi.getEmployee(empGetMatch[1]);
 
       // Quizzes
       if (method === 'GET' && p === '/quizzes') return mockApi.getQuizzes();
@@ -50,15 +53,23 @@ jest.mock('./api/client', () => {
         if (method === 'DELETE') return mockApi.deleteQuiz(id);
       }
 
-      // Employees
-      const empGetMatch = p.match(/^\/employees\/([^/]+)$/);
-      if (method === 'GET' && empGetMatch) return mockApi.getEmployee(empGetMatch[1]);
-      if (method === 'POST' && p === '/employees') return mockApi.upsertEmployee ? mockApi.upsertEmployee(body) : { ...body };
-
       throw new Error(`Mocked client: route not implemented for ${method} ${p}`);
     },
     // PUBLIC_INTERFACE
     apiUploadFile: async (file, optionalLessonId) => mockApi.uploadFile(file, optionalLessonId),
+    // Provide apiClient shape minimally to satisfy imports that reference it
+    apiClient: {
+      fetchLessons: () => mockApi.fetchLessons(),
+      createLesson: (p) => mockApi.createLesson(p),
+      updateLesson: (id, p) => mockApi.updateLesson(id, p),
+      deleteLesson: (id) => mockApi.deleteLesson(id),
+      assignLesson: (p) => mockApi.assignLesson(p),
+      getAssignments: (id) => mockApi.getAssignments(id),
+      markComplete: (p) => mockApi.markComplete(p),
+      getProgress: (id) => mockApi.getProgress(id),
+      uploadFile: (f, id) => mockApi.uploadFile(f, id),
+      getEmployee: (id) => mockApi.getEmployee(id),
+    },
   };
 });
 

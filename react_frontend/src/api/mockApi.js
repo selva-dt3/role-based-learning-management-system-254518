@@ -133,7 +133,7 @@ export async function getEmployee(employee_id) {
   // Simulate first check 404 then success on second call by using a session flag
   await delay();
   const key = `mock:first-employee-check:${employee_id}`;
-  if (!window || !window.sessionStorage) {
+  if (!global || typeof window === 'undefined' || !window.sessionStorage) {
     return { exists: true, employee: { employee_id } };
   }
   if (window.sessionStorage.getItem(key) !== 'done') {
