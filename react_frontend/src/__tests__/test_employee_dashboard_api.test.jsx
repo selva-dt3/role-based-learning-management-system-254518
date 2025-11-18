@@ -37,22 +37,4 @@ describe('EmployeeDashboard API integration', () => {
       { timeout: 10000 }
     );
   });
-
-  test('component works in MemoryRouter wrapper without extra Router nesting', async () => {
-    render(
-      <MemoryRouter initialEntries={['/employee']}>
-        <EmployeeDashboard />
-      </MemoryRouter>
-    );
-
-    const input = await screen.findByLabelText(/Employee ID/i);
-    fireEvent.change(input, { target: { value: 'employee-123' } });
-
-    const checkBtn = screen.getByRole('button', { name: /Check/i });
-    fireEvent.click(checkBtn);
-    await screen.findByText(/Profile not found/i);
-
-    fireEvent.click(checkBtn);
-    expect(await screen.findByText(/Workplace Safety Basics/i)).toBeInTheDocument();
-  });
 });

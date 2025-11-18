@@ -30,5 +30,6 @@ describe('useApi hook', () => {
     expect(progress).toBeTruthy();
     expect(progress).toHaveProperty('assignedCount');
     expect(progress.assignedCount).toBeGreaterThanOrEqual(1);
+    expect(progress.percentage).toBe(0);
   });
 });
